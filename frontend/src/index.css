@@ -47,7 +47,6 @@
   --radius: 0.625rem;
 
   --chart-severity: var(--palette-red-9);
-  --chart-vegetation: var(--palette-green-9);
 }
 
 @theme inline {

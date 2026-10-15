@@ -1,28 +1,21 @@
 import compasWordmark from '@/assets/compas-wordmark.svg'
 
-import { ChartCard3 } from '@/components/chart-card3'
 import { CompositeToggle } from '@/components/CompositeToggle'
-import { FireZoneList } from '@/components/FireZoneList'
 import { LegendSymbolMark } from '@/components/LegendSymbolMark'
 import { MapLayersPopover } from '@/components/MapLayersPopover'
 import { MapLegend } from '@/components/MapLegend'
-import { SceneFacts } from '@/components/SceneFacts'
 import { StatsCard1 } from '@/components/stats-card1'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Map, MapControls, MapGeoJSON, MapImage, MapMarker, MarkerContent, MarkerLabel } from '@/components/ui/map'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { mapLayerOrder, useFireReportPage } from '@/hooks/useFireReportPage'
 import { t } from '@/i18n'
-import { formatNumber, layerSymbols, mapColors } from '@/lib/fireReport'
+import { layerSymbols, mapColors } from '@/lib/fireReport'
 import { palette } from '@/lib/palette'
 
 export function FireReportPage() {
-  const { setMap, ...page } = useFireReportPage()
+  const page = useFireReportPage()
   const { view } = page
 
   return (
@@ -32,7 +25,6 @@ export function FireReportPage() {
         {view && page.basemap && (
           <>
             <Map
-              ref={setMap}
               key={view.report.id}
               theme="light"
               styles={{ light: page.basemap }}
@@ -154,148 +146,25 @@ export function FireReportPage() {
             {page.isError && <p role="alert" className="text-sm text-destructive">{t.app.loadError}</p>}
 
             {page.isLoading && (
-              <>
-                <Skeleton className="h-20 rounded-xl" />
-                <div className="grid grid-cols-2 gap-3">
-                  {[0, 1, 2, 3].map((index) => (
-                    <Skeleton key={index} className="h-28 rounded-xl" />
-                  ))}
-                </div>
-                <Skeleton className="h-64 rounded-xl" />
-              </>
+              <div className="grid grid-cols-2 gap-3">
+                {[0, 1, 2, 3].map((index) => (
+                  <Skeleton key={index} className="h-28 rounded-xl" />
+                ))}
+              </div>
             )}
 
             {view && (
-              <>
-                <SceneFacts
-                  acquisition={view.facts.acquisition}
-                  fireStart={view.facts.fireStart}
-                  daysSinceStart={view.facts.daysSinceStart}
-                  preFire={view.facts.preFire}
-                />
-
-                <section aria-label={t.kpis.title} className="grid grid-cols-2 gap-3">
-                  {view.kpis.map((kpi) => (
-                    <StatsCard1
-                      key={kpi.id}
-                      title={kpi.title}
-                      value={kpi.value}
-                      unit={kpi.unit}
-                      description={kpi.description}
-                    />
-                  ))}
-                </section>
-
-                <FireZoneList
-                  zones={page.fireZones.shown}
-                  hiddenCount={page.fireZones.hiddenCount}
-                  isExpanded={page.fireZones.isExpanded}
-                  onToggleExpanded={page.fireZones.toggleExpanded}
-                  onFocusZone={(zone) => page.focusTarget(zone.target)}
-                />
-
-                <ChartCard3
-                  title={t.environment.title}
-                  description={t.environment.description}
-                  valueLabel={t.environment.valueLabel}
-                  data={view.landCoverChart.data}
-                  footer={view.landCoverChart.footer}
-                />
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>
-                      <h2>{t.affected.title}</h2>
-                    </CardTitle>
-                    <CardDescription>{t.affected.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {view.affectedRows.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">{t.affected.empty}</p>
-                    ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>{t.affected.columns.name}</TableHead>
-                            <TableHead>{t.affected.columns.situation}</TableHead>
-                            <TableHead>{t.affected.columns.official}</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {view.affectedRows.map((row) => (
-                            <TableRow key={row.id}>
-                              <TableCell className="whitespace-normal">
-                                {row.target ? (
-                                  <Button
-                                    variant="link"
-                                    aria-label={t.affected.focus(row.name)}
-                                    className="h-auto p-0 font-medium text-foreground"
-                                    onClick={() => page.focusTarget(row.target!)}
-                                  >
-                                    {row.name}
-                                  </Button>
-                                ) : (
-                                  <span className="block font-medium">{row.name}</span>
-                                )}
-                                <span className="block text-xs text-muted-foreground">
-                                  {row.type} · {row.detail}
-                                </span>
-                              </TableCell>
-                              <TableCell className="whitespace-normal text-xs">{row.situation}</TableCell>
-                              <TableCell>
-                                {row.official === 'confirmed' && (
-                                  <Badge className="bg-tag-green-background text-tag-green-foreground">
-                                    {t.affected.confirmed}
-                                  </Badge>
-                                )}
-                                {row.official === 'not_confirmed' && (
-                                  <Badge className="bg-tag-red-background text-tag-red-foreground">
-                                    {t.affected.notConfirmed}
-                                  </Badge>
-                                )}
-                                {row.official === null && t.affected.notApplicable}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>
-                      <h2>{t.validation.title}</h2>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex flex-col gap-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <p className="text-xs text-muted-foreground">{t.validation.agreement}</p>
-                        <p className="text-xl font-semibold tabular-nums">
-                          {t.validation.percent(formatNumber(view.report.validation.agreementPct, 1))}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">{t.validation.officialArea}</p>
-                        <p className="text-xl font-semibold tabular-nums">
-                          {t.validation.hectares(formatNumber(view.report.validation.officialAreaHa))}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{t.validation.officialAreaNote}</p>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">{t.validation.sources}</p>
-                      <ul className="text-sm">
-                        {t.validation.sourceList.map((source) => (
-                          <li key={source}>{source}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </CardContent>
-                </Card>
-              </>
+              <section aria-label={t.kpis.title} className="grid grid-cols-2 gap-3">
+                {view.kpis.map((kpi) => (
+                  <StatsCard1
+                    key={kpi.id}
+                    title={kpi.title}
+                    value={kpi.value}
+                    unit={kpi.unit}
+                    description={kpi.description}
+                  />
+                ))}
+              </section>
             )}
           </div>
         </ScrollArea>

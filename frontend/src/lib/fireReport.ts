@@ -1,9 +1,8 @@
-import type { FeatureCollection, Geometry, Position } from 'geojson'
+import type { FeatureCollection, Geometry } from 'geojson'
 
-import type { ChartCard3Datum } from '@/components/chart-card3'
 import { t } from '@/i18n'
 import { palette } from '@/lib/palette'
-import type { AreaGeometry, FireReport, LandCover, LngLat, MapLayerId, SeverityClass } from '@/types/fireReport'
+import type { FireReport, MapLayerId, SeverityClass } from '@/types/fireReport'
 
 export type Kpi = {
   id: string
@@ -11,26 +10,6 @@ export type Kpi = {
   value: string
   unit: string
   description: string
-}
-
-export type MapTarget = { kind: 'point'; center: LngLat } | { kind: 'bounds'; bounds: [LngLat, LngLat] }
-
-export type AffectedRow = {
-  id: string
-  name: string
-  type: string
-  situation: string
-  detail: string
-  official: 'confirmed' | 'not_confirmed' | null
-  target: MapTarget | null
-}
-
-export type FireZone = {
-  id: number
-  rank: number
-  length: string
-  detail: string
-  target: MapTarget
 }
 
 export type LegendSymbol = 'fill' | 'line' | 'dashed' | 'fire' | 'marker' | 'ramp'
@@ -45,9 +24,7 @@ export type LegendItem = {
 }
 
 const SEVERE_CLASSES: SeverityClass[] = ['moderada_alta', 'alta']
-const MIN_LAND_COVER_PCT = 1
 const MIN_NEARBY_POPULATION = 500
-const EDGE_KM = 0.1
 
 export const severityColors: Record<Exclude<SeverityClass, 'sin_quemar'>, string> = {
   baja: palette.amber9,
@@ -75,10 +52,6 @@ export const layerSymbols: Record<MapLayerId, { symbol: LegendSymbol; colors: st
 
 export function formatNumber(value: number, digits = 0): string {
   return value.toLocaleString('es-ES', { maximumFractionDigits: digits, minimumFractionDigits: digits })
-}
-
-export function formatDate(isoDate: string): string {
-  return new Date(isoDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
 }
 
 function burnedClasses(report: FireReport) {
@@ -115,21 +88,6 @@ function relevantTowns(report: FireReport) {
     )
 }
 
-function geometryBounds(geometry: AreaGeometry): [LngLat, LngLat] {
-  const rings: Position[][] = geometry.type === 'Polygon' ? geometry.coordinates : geometry.coordinates.flat()
-  const points = rings.flat()
-  const lngs = points.map(([lng]) => lng)
-  const lats = points.map(([, lat]) => lat)
-  return [
-    [Math.min(...lngs), Math.min(...lats)],
-    [Math.max(...lngs), Math.max(...lats)],
-  ]
-}
-
-function formatCoordinates([lng, lat]: LngLat): string {
-  return t.fireZones.coordinates(formatNumber(Math.abs(lat), 3), lat >= 0 ? 'N' : 'S', formatNumber(Math.abs(lng), 3), lng >= 0 ? 'E' : 'O')
-}
-
 export function buildKpis(report: FireReport): Kpi[] {
   return [
     {
@@ -161,18 +119,6 @@ export function buildKpis(report: FireReport): Kpi[] {
       description: t.kpis.affectedDescription(formatNumber(roadsKm(report), 1)),
     },
   ]
-}
-
-export function buildFireZones(report: FireReport): FireZone[] {
-  return [...report.activeFire.fronts]
-    .sort((a, b) => b.lengthKm - a.lengthKm)
-    .map((front, index) => ({
-      id: front.id,
-      rank: index + 1,
-      length: t.fireZones.length(formatNumber(front.lengthKm, 1)),
-      detail: t.fireZones.detail(formatNumber(front.areaHa, 1), formatCoordinates(front.centroid)),
-      target: { kind: 'point', center: front.centroid },
-    }))
 }
 
 export function buildLegend(report: FireReport, visibleLayers: Record<MapLayerId, boolean>) {
@@ -213,54 +159,6 @@ export function buildLegend(report: FireReport, visibleLayers: Record<MapLayerId
       share: null,
     }))
   return { severity, layers }
-}
-
-export function buildLandCoverChart(report: FireReport): { data: ChartCard3Datum[]; footer: string[] } {
-  return {
-    data: (Object.entries(report.environment.landCoverPct) as [LandCover, number][])
-      .filter(([, pct]) => pct >= MIN_LAND_COVER_PCT)
-      .sort(([, a], [, b]) => b - a)
-      .map(([type, pct]) => ({ label: t.environment.landCover[type], value: Math.round(pct), fill: 'var(--chart-vegetation)' })),
-    footer: [
-      t.environment.natura(formatNumber(report.environment.natura2000Pct)),
-      t.environment.recurrence(formatNumber(report.environment.recurrencePct)),
-    ],
-  }
-}
-
-export function buildAffectedRows(report: FireReport): AffectedRow[] {
-  const towns = relevantTowns(report).map<AffectedRow>((town) => ({
-    id: `town-${town.name}`,
-    name: town.name,
-    type: t.affected.types.town,
-    situation: town.inside
-      ? t.affected.inside
-      : town.distanceKm < EDGE_KM
-        ? t.affected.edge
-        : t.affected.near(formatNumber(town.distanceKm, 1)),
-    detail: town.population === null ? t.affected.noPopulation : t.affected.population(formatNumber(town.population)),
-    official: town.inside ? (town.confirmedOfficial ? 'confirmed' : 'not_confirmed') : null,
-    target: { kind: 'point', center: town.coordinates },
-  }))
-  const roads = report.affected.roads.map<AffectedRow>((road) => ({
-    id: `road-${road.name}`,
-    name: road.name,
-    type: t.affected.types.road,
-    situation: t.affected.inside,
-    detail: t.affected.kmInside(formatNumber(road.kmInside, 1)),
-    official: null,
-    target: null,
-  }))
-  const reservoirs = report.affected.reservoirs.map<AffectedRow>((reservoir, index) => ({
-    id: `reservoir-${index}`,
-    name: t.affected.reservoirName(formatNumber(reservoir.areaHa)),
-    type: t.affected.types.reservoir,
-    situation: reservoir.touches ? t.affected.edge : t.affected.near(formatNumber(reservoir.distanceKm, 1)),
-    detail: t.affected.notApplicable,
-    official: null,
-    target: { kind: 'bounds', bounds: geometryBounds(reservoir.geometry) },
-  }))
-  return [...towns, ...roads, ...reservoirs]
 }
 
 function collection(geometries: Geometry[]): FeatureCollection {
