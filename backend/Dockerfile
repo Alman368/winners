@@ -11,6 +11,7 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock .python-version ./
 
+RUN apt-get update && apt-get install -y  --no-install-recommends libexpat1  && rm -rf /var/lib/apt/lists/*
 RUN uv sync --locked --no-dev --no-cache --no-python-downloads
 
 COPY . .
