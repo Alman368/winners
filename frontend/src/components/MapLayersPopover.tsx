@@ -20,7 +20,7 @@ export function MapLayersPopover({ layers, visibleLayers, onLayerVisibleChange }
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="lg" className="bg-card shadow-sm">
+        <Button variant="outline" size="lg" className="bg-white text-foreground shadow-sm hover:bg-white/90 aria-expanded:bg-white dark:border-border dark:bg-white dark:hover:bg-white/90">
           <IconStack2 aria-hidden />
           {t.map.layers}
           <span className="rounded-md bg-muted px-1.5 text-xs tabular-nums text-muted-foreground">{activeCount}</span>

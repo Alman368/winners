@@ -2,6 +2,7 @@ import type { FeatureCollection, Geometry } from 'geojson'
 
 import { t } from '@/i18n'
 import { palette } from '@/lib/palette'
+import type { AffectedRoad, Weather } from '@/types/analysis'
 import type { FireReport, LngLat, MapLayerId, SeverityClass } from '@/types/fireReport'
 
 export type Kpi = {
@@ -33,8 +34,16 @@ export type LegendItem = {
   share: number | null
 }
 
+export type WeatherSummary = {
+  towardsDeg: number
+  wind: string
+  conditions: string
+}
+
 const SEVERE_CLASSES: SeverityClass[] = ['moderada_alta', 'alta']
 const MIN_NEARBY_POPULATION = 500
+const LISTED_ROADS = 3
+const COMPASS_SECTOR_DEG = 360 / t.weather.directions.length
 
 export const severityColors: Record<Exclude<SeverityClass, 'sin_quemar'>, string> = {
   baja: palette.amber9,
@@ -46,6 +55,7 @@ export const severityColors: Record<Exclude<SeverityClass, 'sin_quemar'>, string
 export const mapColors = {
   burned: palette.carbon,
   fire: palette.red9,
+  roads: palette.sky9,
   town: palette.carbon,
   reservoirs: palette.water,
   official: palette.white,
@@ -55,6 +65,7 @@ export const layerSymbols: Record<MapLayerId, { symbol: LegendSymbol; colors: st
   severity: { symbol: 'ramp', colors: Object.values(severityColors) },
   burned: { symbol: 'line', colors: [mapColors.burned] },
   fire: { symbol: 'fire', colors: [mapColors.fire] },
+  roads: { symbol: 'line', colors: [mapColors.roads] },
   towns: { symbol: 'marker', colors: [mapColors.town] },
   reservoirs: { symbol: 'fill', colors: [mapColors.reservoirs] },
   official: { symbol: 'dashed', colors: [mapColors.official] },
@@ -79,12 +90,17 @@ function severeSharePct(report: FireReport): number {
   return (severeHa(report) / total) * 100
 }
 
-function townsInside(report: FireReport) {
-  return report.affected.towns.filter((town) => town.inside)
+function roadsKm(roads: AffectedRoad[]): number {
+  return roads.reduce((sum, road) => sum + road.km_inside, 0)
 }
 
-function roadsKm(report: FireReport): number {
-  return report.affected.roads.reduce((sum, road) => sum + road.kmInside, 0)
+function roadsDescription(roads: AffectedRoad[]): string {
+  if (roads.length === 0) {
+    return t.kpis.roadsNone
+  }
+  const names = roads.slice(0, LISTED_ROADS).map((road) => road.ref ?? road.name ?? t.kpis.unnamedRoad)
+  const more = roads.length - names.length
+  return more > 0 ? t.kpis.roadsMore(names.join(', '), more) : names.join(', ')
 }
 
 function relevantTowns(report: FireReport) {
@@ -121,14 +137,17 @@ export function buildKpis(report: FireReport): Kpi[] {
       unit: t.kpis.km,
       description: t.kpis.fireDescription,
     },
-    {
-      id: 'affected',
-      title: t.kpis.affected,
-      value: String(townsInside(report).length),
-      unit: '',
-      description: t.kpis.affectedDescription(formatNumber(roadsKm(report), 1)),
-    },
   ]
+}
+
+export function buildRoadsKpi(roads: AffectedRoad[]): Kpi {
+  return {
+    id: 'roads',
+    title: t.kpis.roads,
+    value: formatNumber(roadsKm(roads), 1),
+    unit: t.kpis.km,
+    description: roadsDescription(roads),
+  }
 }
 
 export function buildFireZones(report: FireReport): FireZone[] {
@@ -162,7 +181,7 @@ export function buildFireZones(report: FireReport): FireZone[] {
     })
 }
 
-export function buildLegend(report: FireReport, visibleLayers: Record<MapLayerId, boolean>) {
+export function buildLegend(report: FireReport, roads: AffectedRoad[], visibleLayers: Record<MapLayerId, boolean>) {
   const classes = burnedClasses(report)
   const totalHa = classes.reduce((sum, item) => sum + item.areaHa, 0)
   const severity: LegendItem[] = visibleLayers.severity
@@ -178,16 +197,18 @@ export function buildLegend(report: FireReport, visibleLayers: Record<MapLayerId
   const details: Record<Exclude<MapLayerId, 'severity'>, string | null> = {
     burned: t.legend.hectares(formatNumber(report.burned.areaHa)),
     fire: t.legend.front(formatNumber(report.activeFire.totalLengthKm, 1)),
+    roads: t.legend.kilometres(formatNumber(roadsKm(roads), 1)),
     towns: null,
     reservoirs: null,
-    official: t.legend.hectares(formatNumber(report.validation.officialAreaHa)),
+    official: report.validation && t.legend.hectares(formatNumber(report.validation.officialAreaHa)),
   }
   const hasData: Record<keyof typeof details, boolean> = {
     burned: true,
     fire: report.activeFire.fronts.length > 0,
+    roads: roads.length > 0,
     towns: relevantTowns(report).length > 0,
     reservoirs: report.affected.reservoirs.length > 0,
-    official: true,
+    official: report.validation !== null,
   }
   const layers: LegendItem[] = (Object.keys(details) as (keyof typeof details)[])
     .filter((layer) => visibleLayers[layer] && hasData[layer])
@@ -227,7 +248,31 @@ export function buildMapData(report: FireReport) {
     burned: collection([report.burned.perimeter]),
     fire: collection(report.activeFire.fronts.map((front) => front.geometry)),
     reservoirs: collection(report.affected.reservoirs.map((reservoir) => reservoir.geometry)),
-    official: collection([report.validation.officialPerimeter]),
+    official: report.validation && collection([report.validation.officialPerimeter]),
     towns: relevantTowns(report).map((town) => ({ name: town.name, coordinates: town.coordinates, inside: town.inside })),
+  }
+}
+
+function compassPoint(deg: number): string {
+  return t.weather.directions[Math.round(deg / COMPASS_SECTOR_DEG) % t.weather.directions.length]
+}
+
+export function buildRoadsMapData(roads: AffectedRoad[]): FeatureCollection {
+  return collection(roads.map((road) => road.geometry))
+}
+
+export function buildWeatherSummary(weather: Weather): WeatherSummary {
+  return {
+    towardsDeg: weather.wind_towards_deg,
+    wind: t.weather.wind(
+      compassPoint(weather.wind_from_deg),
+      formatNumber(weather.mean_wind_kmh),
+      formatNumber(weather.max_gust_kmh),
+    ),
+    conditions: t.weather.conditions(
+      formatNumber(weather.max_temperature_c),
+      formatNumber(weather.min_relative_humidity_pct),
+      weather.total_precipitation_mm > 0 ? t.weather.rain(formatNumber(weather.total_precipitation_mm, 1)) : t.weather.noRain,
+    ),
   }
 }

@@ -1,14 +1,21 @@
+import { IconLoader2, IconUpload } from '@tabler/icons-react'
+
 import compasWordmark from '@/assets/compas-wordmark.svg'
 
 import { FireZoneList } from '@/components/FireZoneList'
 import { CompositeToggle } from '@/components/CompositeToggle'
+import { CurtainToggle } from '@/components/CurtainToggle'
+import { FireSelector } from '@/components/FireSelector'
+import { ImportFireDialog } from '@/components/ImportFireDialog'
 import { LegendSymbolMark } from '@/components/LegendSymbolMark'
 import { MapLayersPopover } from '@/components/MapLayersPopover'
+import { MapCurtain } from '@/components/MapCurtain'
 import { MapLegend } from '@/components/MapLegend'
 import { StatsCard1 } from '@/components/stats-card1'
+import { WeatherBadge } from '@/components/WeatherBadge'
+import { Button } from '@/components/ui/button'
 import { Map, MapControls, MapGeoJSON, MapImage, MapMarker, MarkerContent, MarkerLabel } from '@/components/ui/map'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { mapLayerOrder, useFireReportPage } from '@/hooks/useFireReportPage'
 import { t } from '@/i18n'
@@ -31,18 +38,13 @@ export function FireReportPage() {
               theme="light"
               styles={{ light: page.basemap }}
               bounds={view.mapData.bounds}
-              fitBoundsOptions={{ padding: 24 }}
+              maxBounds={view.mapData.bounds}
+              onViewportChange={page.curtain.onMapViewportChange}
             >
               <MapControls position="bottom-right" showCompass showFullscreen />
-              {page.sceneImages.map((image) => (
-                <MapImage
-                  key={image.id}
-                  id={image.id}
-                  url={image.url}
-                  coordinates={image.coordinates}
-                  opacity={image.opacity}
-                />
-              ))}
+              {page.originalImage && (
+                <MapImage id="scene" url={page.originalImage.url} coordinates={page.originalImage.coordinates} />
+              )}
               {page.visibleLayers.severity &&
                 view.mapData.severity.map((layer) => (
                   <MapGeoJSON
@@ -61,7 +63,7 @@ export function FireReportPage() {
                   linePaint={{ 'line-color': palette.white, 'line-width': 1.5 }}
                 />
               )}
-              {page.visibleLayers.official && (
+              {page.visibleLayers.official && view.mapData.official && (
                 <MapGeoJSON
                   id="official"
                   data={view.mapData.official}
@@ -75,6 +77,14 @@ export function FireReportPage() {
                   data={view.mapData.burned}
                   fillPaint={false}
                   linePaint={{ 'line-color': mapColors.burned, 'line-width': 2.5 }}
+                />
+              )}
+              {page.visibleLayers.roads && page.context.view && (
+                <MapGeoJSON
+                  id="roads"
+                  data={page.context.view.roads}
+                  fillPaint={false}
+                  linePaint={{ 'line-color': mapColors.roads, 'line-width': 4 }}
                 />
               )}
               {page.visibleLayers.fire && (
@@ -96,18 +106,78 @@ export function FireReportPage() {
                 ))}
             </Map>
 
+            {page.curtain.comparison && (
+              <MapCurtain
+                position={page.curtain.position}
+                onPositionChange={page.curtain.setPosition}
+                beforeLabel={page.curtain.comparison.beforeLabel}
+                afterLabel={page.curtain.comparison.afterLabel}
+              >
+                <Map
+                  theme="light"
+                  styles={{ light: page.basemap }}
+                  interactive={false}
+                  viewport={page.curtain.comparison.viewport}
+                  onViewportChange={page.curtain.syncViewport}
+                >
+                  {page.curtain.firstDayImage && (
+                    <MapImage
+                      id="scene-first-day"
+                      url={page.curtain.firstDayImage.url}
+                      coordinates={page.curtain.firstDayImage.coordinates}
+                    />
+                  )}
+                </Map>
+              </MapCurtain>
+            )}
+
             <div className="pointer-events-none absolute inset-x-3 top-3 flex items-start justify-between gap-2">
               <div className="flex flex-col items-start gap-2">
                 <div className="pointer-events-auto flex flex-wrap items-center gap-1 rounded-xl bg-card/95 p-1 shadow-sm ring-1 ring-foreground/10 backdrop-blur">
                   <CompositeToggle composites={page.composites} value={page.composite} onChange={page.setComposite} />
+                  {page.curtain.isAvailable && (
+                    <>
+                      <span aria-hidden className="mx-1 h-5 w-px bg-border" />
+                      <CurtainToggle
+                        pressed={page.curtain.isOpen}
+                        onPressedChange={page.curtain.toggle}
+                        isLocked={page.curtain.isLocked}
+                        isLoading={page.curtain.isLoading}
+                        isError={page.curtain.isError}
+                      />
+                    </>
+                  )}
+                  {page.isImageLoading && (
+                    <span role="status" className="flex items-center gap-1.5 px-2 text-xs text-muted-foreground">
+                      <IconLoader2 aria-hidden className="size-3.5 animate-spin" />
+                      {t.scenes.imageLoading}
+                    </span>
+                  )}
                 </div>
+                {page.curtain.isLocked && (
+                  <p className="pointer-events-auto max-w-sm rounded-lg bg-card/95 px-3 py-2 text-xs text-muted-foreground shadow-sm ring-1 ring-foreground/10">
+                    {t.scenes.lockedHint}
+                  </p>
+                )}
+                {page.isImageError && (
+                  <p role="alert" className="pointer-events-auto rounded-lg bg-card/95 px-3 py-2 text-xs text-destructive shadow-sm ring-1 ring-foreground/10">
+                    {t.scenes.imageError}
+                  </p>
+                )}
               </div>
-              <div className="pointer-events-auto">
+              <div className="pointer-events-auto flex flex-col items-end gap-2">
                 <MapLayersPopover
                   layers={mapLayerOrder}
                   visibleLayers={page.visibleLayers}
                   onLayerVisibleChange={page.setLayerVisible}
                 />
+                {page.context.view && (
+                  <WeatherBadge
+                    towardsDeg={page.context.view.weather.towardsDeg}
+                    wind={page.context.view.weather.wind}
+                    conditions={page.context.view.weather.conditions}
+                  />
+                )}
               </div>
             </div>
 
@@ -129,18 +199,13 @@ export function FireReportPage() {
       >
         <header className="flex flex-col gap-3 border-b bg-card p-4">
           <img src={compasWordmark} alt={t.app.logo} className="h-auto w-36 max-w-full self-start object-contain" />
-          <Select value={page.fireId} onValueChange={page.selectFire}>
-            <SelectTrigger aria-label={t.app.fireSelector} className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {page.fires.map((fire) => (
-                <SelectItem key={fire.id} value={fire.id}>
-                  {fire.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center justify-between gap-2">
+            <FireSelector fires={page.fires} value={page.fireId} onChange={page.selectFire} />
+            <Button variant="outline" size="sm" onClick={() => page.fireImport.setIsOpen(true)}>
+              <IconUpload data-icon="inline-start" />
+              {t.app.import}
+            </Button>
+          </div>
         </header>
 
         <ScrollArea className="min-h-0 flex-1">
@@ -167,7 +232,26 @@ export function FireReportPage() {
                       description={kpi.description}
                     />
                   ))}
+                  {page.context.view && (
+                    <StatsCard1
+                      title={page.context.view.roadsKpi.title}
+                      value={page.context.view.roadsKpi.value}
+                      unit={page.context.view.roadsKpi.unit}
+                      description={page.context.view.roadsKpi.description}
+                    />
+                  )}
+                  {page.context.isLoading && <Skeleton className="h-28 rounded-xl" />}
                 </section>
+                {page.context.isRunning && (
+                  <p role="status" className="text-sm text-muted-foreground">
+                    {t.app.contextRunning}
+                  </p>
+                )}
+                {page.context.isError && (
+                  <p role="alert" className="text-sm text-destructive">
+                    {t.app.contextError}
+                  </p>
+                )}
                 <FireZoneList
                   zones={page.fireZones.shown}
                   hiddenCount={page.fireZones.hiddenCount}
@@ -180,6 +264,18 @@ export function FireReportPage() {
           </div>
         </ScrollArea>
       </aside>
+
+      <ImportFireDialog
+        open={page.fireImport.isOpen}
+        onOpenChange={page.fireImport.setIsOpen}
+        place={page.fireImport.place}
+        onPlaceChange={page.fireImport.setPlace}
+        onImageChange={page.fireImport.setImage}
+        onSubmit={page.fireImport.submit}
+        canSubmit={page.fireImport.canSubmit}
+        isPending={page.fireImport.isPending}
+        isError={page.fireImport.isError}
+      />
     </div>
   )
 }

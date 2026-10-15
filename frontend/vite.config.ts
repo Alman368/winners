@@ -24,7 +24,7 @@ export default defineConfig(({ command }) => {
     ...config,
     server: {
       proxy: {
-        '/api': { target: viteApiUrl, changeOrigin: true, timeout: 120000 },
+        '/api': { target: viteApiUrl, changeOrigin: true, timeout: 600000 },
       },
     },
   }

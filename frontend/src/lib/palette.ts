@@ -7,4 +7,5 @@ export const palette = {
   amber9: '#ffc53d',
   orange9: '#f76b15',
   water: '#0090ff',
+  sky9: '#7ce2fe',
 } as const

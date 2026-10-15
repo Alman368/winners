@@ -1,4 +1,12 @@
-import type { AnalysisSeverityName, BurnedAreaFeature, FireAnalysis } from '@/types/analysis'
+import { sceneImagePath } from '@/api/scenes'
+import { bboxCorners, sceneComposites } from '@/lib/scenes'
+import type {
+  AnalysisInProgress,
+  AnalysisReport,
+  AnalysisSeverityName,
+  BurnedAreaFeature,
+  FireAnalysis,
+} from '@/types/analysis'
 import type { FireReport, SeverityClass } from '@/types/fireReport'
 
 const severityClassByName: Record<AnalysisSeverityName, SeverityClass> = {
@@ -8,13 +16,15 @@ const severityClassByName: Record<AnalysisSeverityName, SeverityClass> = {
   high: 'alta',
 }
 
-export function applyAnalysis(report: FireReport, analysis: FireAnalysis): FireReport {
+export function isAnalysisInProgress<T extends object>(response: T | AnalysisInProgress): response is AnalysisInProgress {
+  return 'status' in response
+}
+
+function analysisSections(analysis: FireAnalysis): Pick<FireReport, 'burned' | 'activeFire' | 'severity'> {
   const burnedFeature = analysis.geojson.features.find(
     (feature): feature is BurnedAreaFeature => feature.properties.kind === 'burned_area',
   )!
   return {
-    ...report,
-    scene: { ...report.scene, bbox: analysis.scene.bbox },
     burned: {
       perimeter: burnedFeature.geometry,
       areaHa: analysis.burned_area.area_ha,
@@ -38,5 +48,32 @@ export function applyAnalysis(report: FireReport, analysis: FireAnalysis): FireR
         geometry: item.geometry,
       })),
     },
+  }
+}
+
+export function applyAnalysis(report: FireReport, analysis: FireAnalysis): FireReport {
+  return {
+    ...report,
+    ...analysisSections(analysis),
+    scene: { ...report.scene, bbox: analysis.scene.bbox },
+  }
+}
+
+export function importedReport(id: string, name: string, imported: AnalysisReport): FireReport {
+  const { bbox } = imported.analysis.scene
+  const date = imported.georeference.date
+  return {
+    id,
+    name,
+    scene: {
+      date,
+      bbox,
+      composites: sceneComposites,
+      imageUrls: Object.fromEntries(sceneComposites.map((composite) => [composite, sceneImagePath(bbox, date, composite)])),
+      corners: bboxCorners(bbox),
+    },
+    ...analysisSections(imported.analysis),
+    affected: { towns: [], reservoirs: [] },
+    validation: null,
   }
 }

@@ -1,12 +1,33 @@
+import { sceneImagePath } from '@/api/scenes'
 import type { Composite, FireReport, LngLat } from '@/types/fireReport'
+import type { Bbox, SceneComposite } from '@/types/scene'
 
-export type SceneImage = {
-  id: string
-  url: string
+export const sceneComposites: SceneComposite[] = ['true_color', 'swir']
+
+export type SceneImageSource = {
+  path: string
   coordinates: [LngLat, LngLat, LngLat, LngLat]
-  opacity: number
 }
 
-export function buildSceneImage(report: FireReport, composite: Composite): SceneImage {
-  return { id: 'scene', url: report.scene.imageUrls[composite] as string, coordinates: report.scene.corners, opacity: 1 }
+export function formatShortDate(day: string): string {
+  return new Date(day).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+}
+
+export function bboxCorners([west, south, east, north]: Bbox): [LngLat, LngLat, LngLat, LngLat] {
+  return [
+    [west, north],
+    [east, north],
+    [east, south],
+    [west, south],
+  ]
+}
+
+export function sceneImageSource(report: FireReport, day: string, composite: Composite): SceneImageSource {
+  if (day === report.scene.date) {
+    return { path: report.scene.imageUrls[composite] as string, coordinates: report.scene.corners }
+  }
+  return {
+    path: sceneImagePath(report.scene.bbox, day, composite as SceneComposite),
+    coordinates: bboxCorners(report.scene.bbox),
+  }
 }

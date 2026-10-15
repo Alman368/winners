@@ -165,7 +165,7 @@ function useMap() {
 }
 
 /** Map viewport state */
-type MapViewport = {
+export type MapViewport = {
   /** Center coordinates [longitude, latitude] */
   center: [number, number];
   /** Zoom level */
