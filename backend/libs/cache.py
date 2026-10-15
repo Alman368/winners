@@ -6,6 +6,7 @@ Everything lives under `CACHE_DIR` (`backend/data/cache/`, ignored by git, a Doc
 - `copernicus/`: Sentinel-2 rasters downloaded by the pipeline.
 - `analysis/`: fire analysis of each scene, keyed by its `SceneInput`.
 - `analysis-scenes/`: fire analysis of the example scenes in `pipeline/scenes/`, keyed by the scene file.
+- `context/`: roads cut by each burned area and the weather of the fire, keyed by the analysis and fire start.
 
 Deleting the folder (or one namespace) forces everything to be computed again from scratch.
 """

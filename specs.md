@@ -451,18 +451,19 @@ Las referencias son Copernicus EMS (delimitación y grading), EFFIS (cruce con C
 | Severidad | Clases dNBR y ha por clase | Copernicus |
 | Usos del suelo | ha de arbolado, matorral, agrícola, urbano | CORINE, SIOSE, Mapa Forestal |
 | Espacios protegidos | ha en Natura 2000 y ENP | MITECO, EEA |
-| Carreteras | km afectados por tipo; tramos dentro o en el borde del perímetro | IGN (BTN, CartoCiudad), OSM |
+| Carreteras | km afectados por tipo; tramos dentro del perímetro, estimados como cortados (8.1) | OSM vía Overpass |
 | Cortes de carreteras | Estado: **afectada** (calculado) / **corte confirmado** (DGT) | DGT NAP DATEX II v3.6 (sin Cataluña, País Vasco ni diputaciones: "sin dato de corte") |
 | Edificios | Recuento dentro y en la franja del perímetro | Catastro INSPIRE, OSM |
 | Población | Habitantes dentro y cerca del perímetro | INE (rejilla), GHSL |
 | Infraestructura crítica | Líneas eléctricas, ferrocarril, captaciones, depuradoras, hospitales, colegios | OSM, REE |
 | Riesgos posteriores | Erosión (severidad × pendiente), ceniza hacia embalses y cauces aguas abajo | IGN MDT, hidrografía IGN/Confederaciones |
-| Contexto | Viento y temperatura durante el incendio | AEMET OpenData, ERA5 |
+| Contexto | Viento, rachas, temperatura, humedad y lluvia durante el incendio (8.1) | Open-Meteo (ERA5) |
 | Validación | Perímetro oficial | EFFIS, Copernicus EMS |
 
 | ID | Spec | Test (outcome) |
 |---|---|---|
-| INF-1 | Carreteras afectadas: km por tipo y estado | Perímetro y red sintéticos → km exactos |
+| INF-1 | Carreteras cortadas (estimadas): km dentro de la zona quemada por carretera | Perímetro y red sintéticos → km exactos; agrupadas por matrícula o nombre; sin nombre, por tipo ✅ |
+| WEA-1 | Tiempo horario y resumen desde el inicio del incendio hasta la foto | Viento dominante como media vectorial (350° y 10° → norte), racha, T máx, HR mín, lluvia ✅ |
 | INF-2 | Edificios y población dentro y en la franja | Geometrías sintéticas → recuentos exactos |
 | INF-3 | Infraestructura crítica afectada | Elementos sintéticos dentro y fuera → solo los de dentro |
 | AMB-1 | ha por uso del suelo y en Natura 2000 | Polígonos sintéticos → ha exactas |
@@ -470,6 +471,52 @@ Las referencias son Copernicus EMS (delimitación y grading), EFFIS (cruce con C
 | VAR-1 | Valores afectados por categoría y prioridad (vidas, vulnerables, vías, infraestructura, economía, medio ambiente, patrimonio) | Agregados por municipio coherentes con INF/AMB |
 
 Las fuentes externas se testean con respuestas grabadas, y los cruces geométricos con geometrías sintéticas de resultado exacto.
+
+---
+
+### 8.1 Carreteras cortadas y tiempo (`context`)
+
+**Qué devuelve** (`FireContext`):
+- **`roads`**: cada carretera que **cruza la zona quemada**, con `ref` (matrícula), `name`, `road_type` (clase de OSM), `km_inside` y `geometry` (GeoJSON MultiLineString con los tramos afectados, para el mapa).
+  - Ordenadas por km afectados.
+  - Se consideran **cortadas (estimación)**: no es un corte oficial. Confirmarlo con la DGT queda pendiente.
+- **`weather`**: horas (temperatura, humedad, lluvia, viento, dirección, rachas) desde el día de inicio del incendio hasta el de la foto, en el centro de la escena. Más un resumen:
+  - viento dominante y hacia dónde empujaba;
+  - viento medio y racha máxima;
+  - T máx, HR mín y lluvia total.
+
+**Dónde sale:**
+- `POST /api/analysis`: la respuesta (`AnalysisReport`) es la de antes más el campo `context`.
+- `GET /api/analysis/scenes/{scene_id}/context`: el `FireContext` de una escena de demo, a juego con `GET /api/analysis/scenes/{scene_id}`, que no cambia.
+
+**Cómo** (`backend/libs/roads.py`, `backend/libs/weather.py`, `fire_context()` en `backend/api/analysis.py`):
+1. **Carreteras de OpenStreetMap** con Overpass, solo en los límites de la zona quemada: ninguna carretera fuera de ese recuadro puede cruzarla.
+   - Tipos: `motorway`, `trunk`, `primary`, `secondary`, `tertiary`, `unclassified` y sus `_link`. Calles y pistas forestales no.
+2. **Cruce en local** con los polígonos de la zona quemada y **longitud geodésica** (WGS84).
+   - Las vías se agrupan por matrícula, o por nombre si no la tienen.
+   - Las vías sin matrícula ni nombre se agrupan por tipo.
+3. **Tiempo** de Open-Meteo (`archive-api`, reanálisis ERA5), en UTC.
+   - Cubre fechas antiguas y también los últimos días: vale para un incendio de hace 2 días.
+4. **Caché** en `data/cache/context/`, por análisis y fecha de inicio.
+   - La caché de `analysis/` no cambia, así que los análisis guardados siguen valiendo.
+
+**Medido con el perímetro real de Niebla** (5.160 ha, 15-10-2026):
+
+| Paso | Resultado | Tiempo |
+|---|---|---|
+| Carreteras cortadas | A-493 (6,35 km) y HU-3106 (0,38 km) | — |
+| Cruce con el perímetro | | 5 ms |
+| Tiempo (Open-Meteo) | Viento del ONO (291°) empujando hacia el ESE (111°); 10 km/h de media, rachas de 38,5 km/h, 39,4 °C, HR mín 12 %, sin lluvia | 1,2 s |
+| Overpass | 326 vías del bbox de la foto | ~40 s |
+
+**Limitaciones:**
+- **Overpass es la parte frágil.**
+  - Los servidores públicos dieron 502, 500 y 504 durante las pruebas; solo respondía `z.overpass-api.de`, y no siempre.
+  - Se reintenta 3 veces ante 429/5xx y el resultado se cachea.
+  - Para la demo conviene **precalcular las escenas**.
+  - Si hace falta robustez total: descargar una vez la red de carreteras de España (extracto de Geofabrik) y cruzarla en local, sin depender de Overpass.
+- **"Cortada" es una estimación**: una carretera puede cruzar el perímetro y haber seguido abierta, o estar cortada fuera de él por el humo.
+- **El tiempo es de reanálisis** (celdas de ~9-25 km), no de una estación.
 
 ---
 
@@ -566,6 +613,6 @@ Las fuentes externas se testean con respuestas grabadas, y los cruces geométric
 ## 12. Decisiones pendientes
 
 1. Catastro + OSM o solo OSM para edificios.
-2. Fuente del viento: AEMET OpenData (requiere clave) o ERA5.
+2. ~~Fuente del viento~~: Open-Meteo (ERA5), gratis y sin clave (8.1). AEMET queda como posible validación oficial.
 3. Bandas de distancia para la franja de afección: fijas o configurables.
 4. Qué ve el ciudadano: resumen + "¿Me afectó?" o también el mapa completo.

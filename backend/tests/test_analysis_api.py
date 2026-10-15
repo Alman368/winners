@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from api import analysis
 from libs.effis import FireStartNotFoundError
 from libs.http_client import get_http_client
+from models import FireContext, Weather
 from pipeline.models import BurnedArea, FireAnalysis, SceneInfo, SceneInput
 from tests.replay import ReplayTransport
 from tests.scenes import SCENES_DIR
@@ -51,8 +52,15 @@ def services(monkeypatch: pytest.MonkeyPatch) -> Iterator[dict[str, list[object]
         calls["pipeline"].append(scene)
         return fire_analysis(scene)
 
+    async def fire_context(*args: object) -> FireContext:
+        return FireContext(roads=[], weather=Weather(
+            latitude=37.49, longitude=-6.66, hours=[], wind_from_deg=0.0, wind_towards_deg=180.0, mean_wind_kmh=0.0,
+            max_gust_kmh=0.0, max_temperature_c=0.0, min_relative_humidity_pct=0.0, total_precipitation_mm=0.0,
+        ))
+
     monkeypatch.setattr(analysis, "find_fire_start", find_fire_start)
     monkeypatch.setattr(analysis, "analyze", analyze)
+    monkeypatch.setattr(analysis, "fire_context", fire_context)
     yield calls
 
 

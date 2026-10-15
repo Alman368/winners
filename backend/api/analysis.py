@@ -1,15 +1,19 @@
-from datetime import timezone
+from datetime import date, timezone
 from pathlib import Path
 from typing import Annotated
 
 import httpx
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
+from fastapi.concurrency import run_in_threadpool
+from shapely.geometry import MultiPolygon, Polygon
 
 from api.georeferencing import georeference_image
 from libs import cache
 from libs.effis import FireStartNotFoundError, find_fire_start
 from libs.http_client import get_http_client
-from models import AnalysisResult
+from libs.roads import affected_roads, fetch_roads
+from libs.weather import fetch_weather
+from models import AnalysisReport, AnalysisResult, FireContext
 from pipeline.config import CONFIG
 from pipeline.models import FireAnalysis, SceneInput
 from pipeline.pipeline import analyze
@@ -42,23 +46,53 @@ async def _analyze_image(client: httpx.Client, content: bytes, filename: str, pl
     return AnalysisResult(georeference=georeference, fire_start=fire_start, analysis=await analyze(scene))
 
 
+def _burned_area(analysis: FireAnalysis) -> MultiPolygon:
+    return MultiPolygon(
+        [Polygon(polygon.exterior.lonlat, [hole.lonlat for hole in polygon.holes]) for polygon in analysis.burned_area.polygons]
+    )
+
+
+def _fire_context(client: httpx.Client, analysis: FireAnalysis, fire_start: date) -> FireContext:
+    burned = _burned_area(analysis)
+    # Only roads inside the burned area's bounds can cross it, and a smaller query answers faster.
+    roads = [] if burned.is_empty else affected_roads(fetch_roads(client, burned.bounds), burned)
+    west, south, east, north = analysis.scene.bbox
+    return FireContext(
+        roads=roads,
+        weather=fetch_weather(client, (west + east) / 2, (south + north) / 2, fire_start, analysis.scene.acquisition_date),
+    )
+
+
+async def fire_context(client: httpx.Client, analysis: FireAnalysis, fire_start: date) -> FireContext:
+    """Roads cut by the burned area and the weather from the fire start to the image, cached in `data/cache/context/`."""
+    return await cache.cached(
+        cache.CACHE_DIR / "context",
+        cache.cache_key(analysis.model_dump_json(), fire_start.isoformat()),
+        FireContext,
+        lambda: run_in_threadpool(_fire_context, client, analysis, fire_start),
+    )
+
+
 @router.post("")
 async def analyze_upload(
     image: UploadFile,
     place: Annotated[str, Form()],
     client: Annotated[httpx.Client, Depends(get_http_client)],
-) -> AnalysisResult:
-    """Locates a Copernicus Browser export, finds its fire start in EFFIS and runs the fire detection pipeline.
+) -> AnalysisReport:
+    """Locates a Copernicus Browser export, finds its fire start in EFFIS, runs the fire detection pipeline and adds
+    the roads cut by the fire and the weather.
 
-    The whole result is cached per image and place: an image analysed before is answered from `data/cache/analysis/`.
+    The analysis is cached per image and place in `data/cache/analysis/` and the context in `data/cache/context/`.
     """
     content = await image.read()
-    return await cache.cached(
+    result = await cache.cached(
         cache.CACHE_DIR / "analysis",
         cache.cache_key(content, image.filename, place),
         AnalysisResult,
         lambda: _analyze_image(client, content, image.filename, place),
     )
+    context = await fire_context(client, result.analysis, result.fire_start.astimezone(timezone.utc).date())
+    return AnalysisReport(**result.model_dump(), context=context)
 
 
 @router.get("/scenes/{scene_id}")
@@ -77,3 +111,11 @@ async def analyze_demo_scene(scene_id: str) -> FireAnalysis:
         FireAnalysis,
         lambda: analyze(scene),
     )
+
+
+@router.get("/scenes/{scene_id}/context")
+async def demo_scene_context(scene_id: str, client: Annotated[httpx.Client, Depends(get_http_client)]) -> FireContext:
+    """Roads cut by the fire and weather for one of the example scenes in `pipeline/scenes/`."""
+    analysis = await analyze_demo_scene(scene_id)
+    scene = SceneInput.model_validate_json((DEMO_SCENES_DIR / f"{scene_id}.json").read_text())
+    return await fire_context(client, analysis, scene.fire_start)
