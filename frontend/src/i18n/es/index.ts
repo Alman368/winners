@@ -16,10 +16,11 @@ export const es = {
     nothingInside: 'Dentro del perímetro no hay núcleos de población ni carreteras principales.',
   },
   kpis: {
+    title: 'Cifras principales',
     burned: 'Superficie quemada',
     burnedDescription: (km: string) => `Perímetro de ${km} km`,
-    severe: 'Severidad alta o moderada-alta',
-    severeDescription: (pct: string) => `${pct} % de la superficie quemada`,
+    severe: 'Severidad alta',
+    severeDescription: (pct: string) => `${pct} % del área (clases moderada-alta y alta)`,
     fire: 'Frente activo',
     fireDescription: (count: number) => `${count} focos activos en la imagen`,
     affected: 'Núcleos afectados',
@@ -77,13 +78,11 @@ export const es = {
   },
   affected: {
     title: 'Afecciones',
-    description: 'Elementos dentro del perímetro o a menos de 2 km',
+    description: 'Núcleos, carreteras y embalses dentro del perímetro, y poblaciones de más de 500 habitantes a menos de 2 km',
     empty: 'No hay núcleos, carreteras principales ni embalses afectados.',
     columns: {
       name: 'Nombre',
-      type: 'Tipo',
       situation: 'Situación',
-      detail: 'Dato',
       official: 'Perímetro oficial',
     },
     types: { town: 'Núcleo', road: 'Carretera', reservoir: 'Embalse' },
