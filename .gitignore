@@ -1,0 +1,17 @@
+BLUEPRINT.MD
+
+node_modules/
+dist/
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.env.*
+!.env.example
+logs/
+.DS_Store
+
+.claude/*
+!.claude/skills/
+!.claude/skills/**
+.playwright-mcp/

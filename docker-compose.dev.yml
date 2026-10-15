@@ -1,0 +1,45 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: winners-backend-dev
+    ports:
+      - "8765:8765"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./backend
+          target: /app
+          ignore:
+            - .venv/
+            - __pycache__/
+            - "*.pyc"
+            - pyproject.toml
+            - uv.lock
+            - .python-version
+        - action: rebuild
+          path: ./backend/pyproject.toml
+        - action: rebuild
+          path: ./backend/uv.lock
+        - action: rebuild
+          path: ./backend/.python-version
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: winners-frontend-dev
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://backend:8765
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
