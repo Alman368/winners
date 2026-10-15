@@ -216,16 +216,59 @@ Las métricas son objetivos iniciales: se fijan tras la primera medición base y
 | GEO-3 | Rechazo si no es fiable | Imagen de otra zona → `GeoreferenceError` | ✅ |
 | GEO-4 | Mosaico de referencia por teselas WMS | Teselas cosidas sin saltos, también en los bordes irregulares | ✅ |
 | GEO-5 | Localizar una escena desde el nombre del lugar (gruesa + fina) | Niebla, La Mierla y Madrid-Ávila: centro a < 500 m y m/px ±3 % | ✅ |
-| GEO-6 | Endpoint `POST /georeference` (imagen + lugar) → bbox, centro, m/px, inliers | Contrato de la API; archivo no imagen → 422 `invalid_image`; lugar no encontrado → 422 `place_not_found`; no localizable → 422 `georeference_failed` | ✅ |
+| GEO-6 | Endpoint `POST /georeference` (imagen + lugar) → `date`, `bbox` (oeste, sur, este, norte), `image_size` (ancho, alto), centro, m/px, inliers | Contrato de la API; archivo no imagen → 422 `invalid_image`; lugar no encontrado → 422 `place_not_found`; no localizable → 422 `georeference_failed` | ✅ |
 | GEO-7 | Robustez a recorte y zoom | Recortes del 30-100 % y escalas de 0,5-2× recuperan el bbox | Pendiente |
-| CDS-1 | OAuth client credentials desde `.env` | Token en la cabecera; 401 → error claro | Pendiente |
+| CDS-1 | OAuth client credentials desde `.env` | Las credenciales se canjean por un `access_token` | ✅ |
 | CDS-2 | Render Process API: bbox + fecha + script (TC, SWIR, Wildfires) | Respuesta grabada → imagen del tamaño pedido | Pendiente |
-| CDS-3 | Bandas en reflectancia + SCL en GeoTIFF | Valores en [0,1]; clases SCL esperadas | Pendiente |
-| CDS-4 | Pasadas disponibles por bbox y rango de fechas (catálogo) | Ordenadas, con % de nubes; dos pasadas del mismo día agrupadas | Pendiente |
-| DAT-1 | Fecha leída del nombre y verificada por contenido | La fecha correcta encaja mejor que la del día anterior y la del siguiente | Pendiente |
+| CDS-3 | Bandas en reflectancia + SCL + dataMask en GeoTIFF UTM | Reflectancia en [0,1], SCL, máscara y transform UTM leídos del GeoTIFF | ✅ |
+| CDS-4 | Pasadas disponibles por bbox y rango de fechas (catálogo) | En orden cronológico, con satélite, tesela, % de nubes y EPSG | ✅ |
+| DAT-1 | Fecha leída del nombre (✅; exportaciones de varios días → 422 `multi_day_export`) y verificada por contenido (pendiente) | La fecha correcta encaja mejor que la del día anterior y la del siguiente | Parcial |
 | CLS-1 | Máscara SCL aplicada a la detección | Píxeles de agua o nube en SCL nunca son quemado ni foco | Pendiente |
 | SEV-1 | Severidad dNBR con clases USGS y ha por clase | Par sintético antes/después → clases esperadas | Pendiente |
 | SEV-2 | Elección automática de la imagen anterior al incendio | La más reciente con pocas nubes sobre el bbox | Pendiente |
+
+### ⚠️ Aviso para quien consume `POST /georeference` (área, hectáreas, perímetro)
+
+Respuesta (ejemplo Niebla):
+
+```json
+{
+  "date": "2026-08-08",
+  "bbox": [-6.84116, 37.39951, -6.47896, 37.57728],
+  "image_size": [2500, 1546],
+  "centre_lon": -6.66006,
+  "centre_lat": 37.48845,
+  "metres_per_px": 12.8,
+  "inliers": 231
+}
+```
+
+- **`bbox`**:
+  - Orden `(oeste, sur, este, norte)` = `(min_lon, min_lat, max_lon, max_lat)`, en grados EPSG:4326.
+  - Cubre la imagen **de borde a borde**: es la transformación de las esquinas (0,0) y (ancho, alto).
+- **La imagen está en Web Mercator (EPSG:3857), no en lon/lat.**
+  - Las columnas son lineales en longitud.
+  - Las filas **no** son lineales en latitud.
+  - Para pasar de píxel a coordenadas:
+    1. Convertir el bbox a EPSG:3857.
+    2. Interpolar linealmente en metros Mercator.
+    3. Volver a lon/lat.
+  - Si se interpola la latitud linealmente:
+
+    | Escena | Error máximo |
+    |---|---|
+    | Niebla | 0,5 px |
+    | Madrid-Ávila | **7,8 px** |
+
+- **`metres_per_px` es el valor en el centro de la imagen.**
+  - En Mercator el tamaño real del píxel cambia con la latitud: un 0,24 % de norte a sur en Niebla y un **1 %** en Madrid-Ávila.
+  - Multiplicar píxeles por `metres_per_px²` da un error de ese orden en las hectáreas.
+- **Para hectáreas exactas, usar el GeoTIFF de Copernicus en UTM** (`app/copernicus/process.py`, `fetch_bands` con el `bbox` de la respuesta):
+  - cada píxel mide exactamente `resolution_m × resolution_m` (a 20 m, **0,04 ha por píxel**);
+  - el `transform` da las coordenadas UTM de cada píxel.
+- **`date`**: fecha de toma (`YYYY-MM-DD`) leída del nombre del archivo. Una exportación de varios días se rechaza con 422 `multi_day_export`.
+- **`image_size`**: `(ancho, alto)` de la imagen original. Sirve para dibujar el perímetro en píxeles encima de la foto.
+- **El incendio puede salirse del bbox de la foto.** En Niebla, el 13-08 ya excedía el encuadre del 08-08. Para la evolución diaria hay que analizar una zona mayor que la foto.
 
 ---
 

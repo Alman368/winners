@@ -16,10 +16,8 @@ REFINE_MARGIN = 0.1
 
 @dataclass(frozen=True)
 class Location:
-    west: float
-    south: float
-    east: float
-    north: float
+    bbox: tuple[float, float, float, float]
+    image_size: tuple[int, int]
     centre_lon: float
     centre_lat: float
     metres_per_px: float
@@ -52,10 +50,8 @@ def locate(client: httpx.Client, image: np.ndarray, place: str) -> Location:
     )
     metres_per_px = (fine.box.east - fine.box.west) / image.shape[1] * math.cos(math.radians(centre_lat))
     return Location(
-        west=west,
-        south=south,
-        east=east,
-        north=north,
+        bbox=(west, south, east, north),
+        image_size=(image.shape[1], image.shape[0]),
         centre_lon=centre_lon,
         centre_lat=centre_lat,
         metres_per_px=metres_per_px,

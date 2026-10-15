@@ -38,11 +38,23 @@ def test_georeferences_an_uploaded_scene(replay_api: TestClient) -> None:
 
     assert response.status_code == 200
     body = response.json()
+    assert body["date"] == "2026-08-08"
+    assert body["image_size"] == [2500, 1546]
+    assert body["bbox"] == pytest.approx([-6.84125, 37.39963, -6.47903, 37.57739], abs=0.0005)
     assert body["centre_lat"] == pytest.approx(37.4885, abs=0.005)
     assert body["centre_lon"] == pytest.approx(-6.6601, abs=0.005)
-    assert body["west"] < body["centre_lon"] < body["east"]
-    assert body["south"] < body["centre_lat"] < body["north"]
     assert body["metres_per_px"] == pytest.approx(12.8, rel=0.03)
+
+
+def test_an_export_mosaicking_several_days_is_rejected(unknown_place_api: TestClient) -> None:
+    response = unknown_place_api.post(
+        "/georeference",
+        files={"image": ("2026-07-20-00_00_2026-07-26-23_59_Sentinel-2_L2A_True_color.jpg", NIEBLA_TRUE_COLOR.read_bytes())},
+        data={"place": "Niebla (Huelva)"},
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {"detail": "multi_day_export"}
 
 
 def test_a_file_that_is_not_an_image_is_rejected(unknown_place_api: TestClient) -> None:
