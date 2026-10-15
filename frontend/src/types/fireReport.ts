@@ -18,6 +18,8 @@ export type FireReport = {
     composites: Composite[]
     imageUrls: Partial<Record<Composite, string>>
     corners: [LngLat, LngLat, LngLat, LngLat]
+    passes: { acquiredAt: string; platform: string }[]
+    bbox: [number, number, number, number]
   }
   burned: {
     perimeter: AreaGeometry
@@ -25,7 +27,7 @@ export type FireReport = {
     perimeterKm: number
   }
   activeFire: {
-    fronts: { geometry: AreaGeometry; lengthKm: number }[]
+    fronts: { id: number; geometry: AreaGeometry; lengthKm: number; areaHa: number; centroid: LngLat }[]
     totalLengthKm: number
   }
   severity: {

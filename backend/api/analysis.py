@@ -27,6 +27,10 @@ or output schema) computes new analyses instead of serving ones made by older co
 _scene_analyses: dict[str, asyncio.Task[FireAnalysis]] = {}
 
 
+def demo_scene_key(scene_file: Path) -> str:
+    return cache.cache_key(scene_file.read_bytes(), PIPELINE_SOURCE)
+
+
 async def _analyze_image(client: httpx.Client, content: bytes, filename: str, place: str) -> AnalysisResult:
     georeference = await georeference_image(client, content, filename, place)
     async with httpx.AsyncClient(timeout=EFFIS_TIMEOUT_S) as effis_client:
@@ -79,7 +83,7 @@ async def analyze_demo_scene(scene_id: str, response: Response) -> FireAnalysis 
     scene_file = DEMO_SCENES_DIR / f"{scene_id}.json"
     if not scene_file.exists():
         raise HTTPException(status_code=404, detail="scene_not_found")
-    key = cache.cache_key(scene_file.read_bytes(), PIPELINE_SOURCE)
+    key = demo_scene_key(scene_file)
     task = _scene_analyses.get(key)
     if task is None:
         stored = cache.load(cache.CACHE_DIR / "analysis-scenes", key, FireAnalysis)

@@ -1186,10 +1186,12 @@ function MapImage({ id, url, coordinates, opacity = 1 }: MapImageProps) {
   const sourceId = `image-source-${id}`;
   const layerId = `image-layer-${id}`;
   const stableCoordinates = useStableValue(coordinates);
+  const loadedRef = useRef<{ url: string; coordinates: MapImageCoordinates } | null>(null);
 
   useEffect(() => {
     if (!isLoaded || !map) return;
 
+    loadedRef.current = { url, coordinates: stableCoordinates };
     const firstSymbolId = map
       .getStyle()
       .layers.find((layer) => layer.type === "symbol")?.id;
@@ -1217,8 +1219,11 @@ function MapImage({ id, url, coordinates, opacity = 1 }: MapImageProps) {
 
   useEffect(() => {
     if (!isLoaded || !map) return;
-    const source = map.getSource(sourceId) as MapLibreGL.ImageSource | undefined;
-    source?.updateImage({ url, coordinates: stableCoordinates });
+    const loaded = loadedRef.current;
+    if (loaded && loaded.url === url && loaded.coordinates === stableCoordinates) return;
+    loadedRef.current = { url, coordinates: stableCoordinates };
+    const source = map.getSource(sourceId) as MapLibreGL.ImageSource;
+    source.updateImage({ url, coordinates: stableCoordinates });
   }, [isLoaded, map, sourceId, url, stableCoordinates]);
 
   useEffect(() => {

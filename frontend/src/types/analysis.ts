@@ -4,6 +4,7 @@ export type AnalysisSeverityName = 'low' | 'moderate_low' | 'moderate_high' | 'h
 
 export type FireAnalysis = {
   scene: {
+    bbox: [number, number, number, number]
     acquisition_date: string
     pre_fire_window: [string, string]
   }
@@ -12,7 +13,13 @@ export type FireAnalysis = {
     perimeter_km: number
     severity: { name: AnalysisSeverityName; area_ha: number; geometry: MultiPolygon }[]
   }
-  active_fires: { id: number; front_length_km: number; geometry: MultiPolygon }[]
+  active_fires: {
+    id: number
+    centroid: { lonlat: [number, number] }
+    area_ha: number
+    front_length_km: number
+    geometry: MultiPolygon
+  }[]
   active_front_km: number
   geojson: FeatureCollection<MultiPolygon | Point, { kind: AnalysisFeatureKind }>
 }

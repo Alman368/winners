@@ -29,4 +29,4 @@ def identity_server(request: httpx.Request) -> httpx.Response:
 def test_exchanges_client_credentials_for_an_access_token() -> None:
     client = httpx.Client(transport=httpx.MockTransport(identity_server))
 
-    assert fetch_token(client, "my-client", "my-secret") == "eyJ.token"
+    assert fetch_token(client, "my-client", "my-secret").value == "eyJ.token"

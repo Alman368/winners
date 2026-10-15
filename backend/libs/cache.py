@@ -6,6 +6,7 @@ Everything lives under `CACHE_DIR` (`backend/data/cache/`, ignored by git, a Doc
 - `copernicus/`: Sentinel-2 rasters downloaded by the pipeline.
 - `analysis/`: fire analysis of each uploaded image, keyed by the image, its place name and the pipeline code.
 - `analysis-scenes/`: fire analysis of the example scenes in `pipeline/scenes/`, keyed by the scene file and the pipeline code.
+- `renders/`: PNG renders of a bbox, day and composite for the map.
 
 Deleting the folder (or one namespace) forces everything to be computed again from scratch.
 """
@@ -39,4 +40,14 @@ async def cached[M: BaseModel](directory: Path, key: str, model: type[M], comput
     result = await compute()
     directory.mkdir(parents=True, exist_ok=True)
     (directory / f"{key}.json").write_text(result.model_dump_json(), encoding="utf-8")
+    return result
+
+
+async def cached_bytes(directory: Path, key: str, compute: Callable[[], Awaitable[bytes]]) -> bytes:
+    path = directory / key
+    if path.exists():
+        return path.read_bytes()
+    result = await compute()
+    directory.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(result)
     return result

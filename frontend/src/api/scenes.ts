@@ -10,7 +10,7 @@ export function fetchScenePasses(bbox: Bbox, start: string, end: string): Promis
   return baseFetch<ScenePass[]>(`/api/scenes/passes?${params}`)
 }
 
-export function sceneImageUrl(bbox: Bbox, day: string, composite: SceneComposite): string {
+export function sceneImagePath(bbox: Bbox, day: string, composite: SceneComposite): string {
   const params = new URLSearchParams({ ...bboxParams(bbox), day, composite })
   return `/api/scenes/image?${params}`
 }

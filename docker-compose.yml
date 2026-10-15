@@ -12,6 +12,7 @@ services:
         max-file: "3"
     environment:
       - ENV=production
+      - CORS_ORIGINS=https://${DOMAIN:?DOMAIN is required}
     volumes:
       - backend_cache:/app/data/cache
     healthcheck:

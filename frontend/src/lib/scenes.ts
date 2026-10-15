@@ -1,25 +1,17 @@
-import { sceneImageUrl } from '@/api/scenes'
+import { sceneImagePath } from '@/api/scenes'
 import { t } from '@/i18n'
 import { formatNumber } from '@/lib/fireReport'
 import type { Composite, FireReport, LngLat } from '@/types/fireReport'
-import type { Bbox, DayOption, SceneComposite, ScenePass } from '@/types/scene'
+import type { DayOption, SceneComposite, ScenePass } from '@/types/scene'
 
 const PASS_WINDOW_DAYS = 30
 const DAY_MS = 86_400_000
 
 export const sceneComposites: SceneComposite[] = ['true_color', 'swir']
 
-export type SceneImage = {
-  id: string
-  url: string
+export type SceneImageSource = {
+  path: string
   coordinates: [LngLat, LngLat, LngLat, LngLat]
-  opacity: number
-}
-
-export function sceneBbox(report: FireReport): Bbox {
-  const lngs = report.scene.corners.map(([lng]) => lng)
-  const lats = report.scene.corners.map(([, lat]) => lat)
-  return [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)]
 }
 
 function shiftDay(day: string, days: number): string {
@@ -58,26 +50,23 @@ export function availableComposites(report: FireReport, days: string[]): Composi
   return days.every((day) => day === report.scene.date) ? report.scene.composites : sceneComposites
 }
 
-export function buildSceneImage(
-  report: FireReport,
-  id: string,
-  day: string,
-  composite: Composite,
-  opacity: number,
-): SceneImage {
+export function sceneImageSource(report: FireReport, day: string, composite: Composite): SceneImageSource {
   if (day === report.scene.date) {
-    return { id, url: report.scene.imageUrls[composite] as string, coordinates: report.scene.corners, opacity }
+    return { path: report.scene.imageUrls[composite] as string, coordinates: report.scene.corners }
   }
-  const [west, south, east, north] = sceneBbox(report)
+  const [west, south, east, north] = report.scene.bbox
   return {
-    id,
-    url: sceneImageUrl([west, south, east, north], day, composite as SceneComposite),
+    path: sceneImagePath([west, south, east, north], day, composite as SceneComposite),
     coordinates: [
       [west, north],
       [east, north],
       [east, south],
       [west, south],
     ],
-    opacity,
   }
+}
+
+export function neighbourDays(options: DayOption[], day: string): string[] {
+  const index = options.findIndex((option) => option.day === day)
+  return [options[index - 1], options[index + 1]].filter((option) => option !== undefined).map((option) => option.day)
 }
