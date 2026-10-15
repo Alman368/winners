@@ -8,6 +8,8 @@ import { baseFetchObjectUrl } from '@/api/client'
 import { fetchFireReport } from '@/api/fireReports'
 import type { MapViewport } from '@/components/ui/map'
 import { useFireImport } from '@/hooks/useFireImport'
+import { useOnboardingTour } from '@/hooks/useOnboardingTour'
+import { useRoadTooltip } from '@/hooks/useRoadTooltip'
 import { t } from '@/i18n'
 import { applyAnalysis, importedReport, isAnalysisInProgress } from '@/lib/analysis'
 import { demoFires, type FireOption } from '@/lib/demoFires'
@@ -62,6 +64,7 @@ export function useFireReportPage() {
   const [composite, setComposite] = useState<Composite>('swir')
   const [visibleLayers, setVisibleLayers] = useState(initialLayers)
   const [areFireZonesExpanded, setAreFireZonesExpanded] = useState(false)
+  const [isWeatherExpanded, setIsWeatherExpanded] = useState(true)
   const [isCurtainOpen, setIsCurtainOpen] = useState(false)
   const [curtainPosition, setCurtainPosition] = useState(INITIAL_CURTAIN_POSITION)
   const [viewport, setViewport] = useState<MapViewport | null>(null)
@@ -154,6 +157,8 @@ export function useFireReportPage() {
     placeholderData: keepPreviousData,
   })
 
+  const roadTooltip = useRoadTooltip(context ? context.roads : [])
+
   const legend = useMemo(
     () => (report ? buildLegend(report, context ? context.roads : [], visibleLayers) : null),
     [report, context, visibleLayers],
@@ -183,6 +188,7 @@ export function useFireReportPage() {
   }
 
   const fireImport = useFireImport(addImportedFire)
+  const tour = useOnboardingTour()
 
   const toggleCurtain = (open: boolean) => {
     if (open) {
@@ -206,6 +212,7 @@ export function useFireReportPage() {
   return {
     fires: [...demoFires, ...importedFires],
     fireImport,
+    tour,
     fireId,
     selectFire,
     composite,
@@ -253,11 +260,16 @@ export function useFireReportPage() {
     },
     isImageLoading: originalImageQuery.isFetching || firstDayImageQuery.isFetching,
     isImageError: originalImageQuery.isError || firstDayImageQuery.isError,
+    roadTooltip,
     context: {
       view: contextView,
       isRunning: isContextRunning,
       isLoading: contextQuery.isLoading || isContextRunning,
       isError: contextQuery.isError,
+    },
+    weather: {
+      isExpanded: isWeatherExpanded,
+      toggleExpanded: () => setIsWeatherExpanded((current) => !current),
     },
     isLoading: reportQuery.isLoading || analysisQuery.isLoading || basemapQuery.isLoading,
     isError: reportQuery.isError || analysisQuery.isError || basemapQuery.isError,

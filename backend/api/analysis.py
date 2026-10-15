@@ -18,6 +18,7 @@ from libs.copernicus.auth import copernicus_token
 from libs.copernicus.catalog import Acquisition, search_acquisitions
 from libs.effis import FireStartNotFoundError, find_fire_start
 from libs.http_client import TIMEOUT_S, get_http_client
+from libs.kilometre_points import fetch_kilometre_points
 from libs.roads import affected_roads, fetch_roads
 from libs.weather import fetch_weather
 from models import AnalysisInProgress, AnalysisReport, AnalysisResult, FireContext, FireDays
@@ -87,7 +88,13 @@ def _burned_area(analysis: FireAnalysis) -> MultiPolygon:
 def _fire_context(client: httpx.Client, analysis: FireAnalysis, fire_start: date) -> FireContext:
     burned = _burned_area(analysis)
     # Only roads inside the burned area's bounds can cross it, and a smaller query answers faster.
-    roads = [] if burned.is_empty else affected_roads(fetch_roads(client, burned.bounds), burned)
+    roads = (
+        []
+        if burned.is_empty
+        else affected_roads(
+            fetch_roads(client, burned.bounds), burned, lambda bboxes: fetch_kilometre_points(client, bboxes)
+        )
+    )
     west, south, east, north = analysis.scene.bbox
     return FireContext(
         roads=roads,

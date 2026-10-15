@@ -1,18 +1,9 @@
-import { IconLoader2 } from '@tabler/icons-react'
+import { IconLoader2, IconPhotoUp } from '@tabler/icons-react'
 import type { FormEvent } from 'react'
 
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { t } from '@/i18n'
 
 type ImportFireDialogProps = {
@@ -20,6 +11,7 @@ type ImportFireDialogProps = {
   onOpenChange: (open: boolean) => void
   place: string
   onPlaceChange: (place: string) => void
+  imageName: string | null
   onImageChange: (image: File | null) => void
   onSubmit: () => void
   canSubmit: boolean
@@ -32,6 +24,7 @@ export function ImportFireDialog({
   onOpenChange,
   place,
   onPlaceChange,
+  imageName,
   onImageChange,
   onSubmit,
   canSubmit,
@@ -45,53 +38,40 @@ export function ImportFireDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <DialogContent aria-describedby={undefined}>
+        <form onSubmit={handleSubmit} className="flex min-w-0 flex-col gap-3">
           <DialogHeader>
             <DialogTitle>{t.importFire.title}</DialogTitle>
-            <DialogDescription>{t.importFire.description}</DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="import-image">{t.importFire.image}</Label>
-            <Input
-              id="import-image"
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-input px-3 py-4 text-muted-foreground transition-colors hover:bg-muted/50 has-focus-visible:ring-2 has-focus-visible:ring-ring has-disabled:cursor-not-allowed has-disabled:opacity-50">
+            <IconPhotoUp aria-hidden className="size-5 shrink-0" />
+            <span className={imageName === null ? 'min-w-0 truncate' : 'min-w-0 truncate text-foreground'}>
+              {imageName === null ? t.importFire.chooseImage : imageName}
+            </span>
+            <input
               type="file"
               accept="image/jpeg,image/png"
+              className="sr-only"
               disabled={isPending}
               onChange={(event) => onImageChange(event.target.files!.item(0))}
             />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="import-place">{t.importFire.place}</Label>
-            <Input
-              id="import-place"
-              value={place}
-              placeholder={t.importFire.placePlaceholder}
-              disabled={isPending}
-              onChange={(event) => onPlaceChange(event.target.value)}
-            />
-          </div>
-          {isPending && (
-            <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
-              <IconLoader2 aria-hidden className="size-4 shrink-0 animate-spin" />
-              {t.importFire.running}
-            </p>
-          )}
+          </label>
+          <Input
+            aria-label={t.importFire.placePlaceholder}
+            value={place}
+            placeholder={t.importFire.placePlaceholder}
+            disabled={isPending}
+            onChange={(event) => onPlaceChange(event.target.value)}
+          />
           {errorMessage !== null && (
             <p role="alert" className="text-sm text-destructive">
               {errorMessage}
             </p>
           )}
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                {t.importFire.cancel}
-              </Button>
-            </DialogClose>
-            <Button type="submit" disabled={!canSubmit}>
-              {t.importFire.submit}
-            </Button>
-          </DialogFooter>
+          <Button type="submit" disabled={!canSubmit} className="w-full">
+            {isPending && <IconLoader2 aria-hidden className="animate-spin" />}
+            {isPending ? t.importFire.running : t.importFire.submit}
+          </Button>
         </form>
       </DialogContent>
     </Dialog>

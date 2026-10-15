@@ -44,6 +44,7 @@ export function useFireImport(onImported: (report: AnalysisReport, place: string
     setIsOpen,
     place,
     setPlace,
+    imageName: image === null ? null : image.name,
     setImage,
     canSubmit: image !== null && place.trim() !== '' && !mutation.isPending,
     submit: () => mutation.mutate(),

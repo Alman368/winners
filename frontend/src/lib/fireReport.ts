@@ -1,4 +1,4 @@
-import type { FeatureCollection, Geometry } from 'geojson'
+import type { FeatureCollection, Geometry, MultiLineString } from 'geojson'
 
 import { t } from '@/i18n'
 import { palette } from '@/lib/palette'
@@ -36,8 +36,12 @@ export type LegendItem = {
 
 export type WeatherSummary = {
   towardsDeg: number
-  wind: string
-  conditions: string
+  windFrom: string
+  windSpeed: string
+  gusts: string
+  maxTemperature: string
+  minHumidity: string
+  rain: string
 }
 
 const SEVERE_CLASSES: SeverityClass[] = ['moderada_alta', 'alta']
@@ -257,22 +261,26 @@ function compassPoint(deg: number): string {
   return t.weather.directions[Math.round(deg / COMPASS_SECTOR_DEG) % t.weather.directions.length]
 }
 
-export function buildRoadsMapData(roads: AffectedRoad[]): FeatureCollection {
-  return collection(roads.map((road) => road.geometry))
+export type RoadProperties = { index: number }
+
+export function buildRoadsMapData(roads: AffectedRoad[]): FeatureCollection<MultiLineString, RoadProperties> {
+  return {
+    type: 'FeatureCollection',
+    features: roads.map((road, index) => ({ type: 'Feature', properties: { index }, geometry: road.geometry })),
+  }
 }
 
 export function buildWeatherSummary(weather: Weather): WeatherSummary {
   return {
     towardsDeg: weather.wind_towards_deg,
-    wind: t.weather.wind(
-      compassPoint(weather.wind_from_deg),
-      formatNumber(weather.mean_wind_kmh),
-      formatNumber(weather.max_gust_kmh),
-    ),
-    conditions: t.weather.conditions(
-      formatNumber(weather.max_temperature_c),
-      formatNumber(weather.min_relative_humidity_pct),
-      weather.total_precipitation_mm > 0 ? t.weather.rain(formatNumber(weather.total_precipitation_mm, 1)) : t.weather.noRain,
-    ),
+    windFrom: t.weather.windFrom(compassPoint(weather.wind_from_deg)),
+    windSpeed: t.weather.speed(formatNumber(weather.mean_wind_kmh)),
+    gusts: t.weather.speed(formatNumber(weather.max_gust_kmh)),
+    maxTemperature: t.weather.temperature(formatNumber(weather.max_temperature_c)),
+    minHumidity: t.weather.humidity(formatNumber(weather.min_relative_humidity_pct)),
+    rain:
+      weather.total_precipitation_mm > 0
+        ? t.weather.rainAmount(formatNumber(weather.total_precipitation_mm, 1))
+        : t.weather.noRain,
   }
 }

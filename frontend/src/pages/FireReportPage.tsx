@@ -1,4 +1,4 @@
-import { IconLoader2, IconUpload } from '@tabler/icons-react'
+import { IconLoader2, IconRoute, IconUpload } from '@tabler/icons-react'
 
 import compasWordmark from '@/assets/compas-wordmark.svg'
 
@@ -11,7 +11,10 @@ import { LegendSymbolMark } from '@/components/LegendSymbolMark'
 import { MapLayersPopover } from '@/components/MapLayersPopover'
 import { MapCurtain } from '@/components/MapCurtain'
 import { MapLegend } from '@/components/MapLegend'
+import { RoadTooltip } from '@/components/RoadTooltip'
 import { StatsCard1 } from '@/components/stats-card1'
+import { TourCard } from '@/components/TourCard'
+import { TourSpotlight } from '@/components/TourSpotlight'
 import { WeatherBadge } from '@/components/WeatherBadge'
 import { Button } from '@/components/ui/button'
 import { Map, MapControls, MapGeoJSON, MapImage, MapMarker, MarkerContent, MarkerLabel } from '@/components/ui/map'
@@ -85,6 +88,8 @@ export function FireReportPage() {
                   data={page.context.view.roads}
                   fillPaint={false}
                   linePaint={{ 'line-color': mapColors.roads, 'line-width': 4 }}
+                  interactive
+                  onHover={page.roadTooltip.onHover}
                 />
               )}
               {page.visibleLayers.fire && (
@@ -105,6 +110,16 @@ export function FireReportPage() {
                   </MapMarker>
                 ))}
             </Map>
+
+            {page.roadTooltip.tooltip && (
+              <RoadTooltip
+                x={page.roadTooltip.tooltip.x}
+                y={page.roadTooltip.tooltip.y}
+                title={page.roadTooltip.tooltip.title}
+                subtitle={page.roadTooltip.tooltip.subtitle}
+                kilometre={page.roadTooltip.tooltip.kilometre}
+              />
+            )}
 
             {page.curtain.comparison && (
               <MapCurtain
@@ -134,17 +149,21 @@ export function FireReportPage() {
             <div className="pointer-events-none absolute inset-x-3 top-3 flex items-start justify-between gap-2">
               <div className="flex flex-col items-start gap-2">
                 <div className="pointer-events-auto flex flex-wrap items-center gap-1 rounded-xl bg-card/95 p-1 shadow-sm ring-1 ring-foreground/10 backdrop-blur">
-                  <CompositeToggle composites={page.composites} value={page.composite} onChange={page.setComposite} />
+                  <div data-tour="composites">
+                    <CompositeToggle composites={page.composites} value={page.composite} onChange={page.setComposite} />
+                  </div>
                   {page.curtain.isAvailable && (
                     <>
                       <span aria-hidden className="mx-1 h-5 w-px bg-border" />
-                      <CurtainToggle
-                        pressed={page.curtain.isOpen}
-                        onPressedChange={page.curtain.toggle}
-                        isLocked={page.curtain.isLocked}
-                        isLoading={page.curtain.isLoading}
-                        isError={page.curtain.isError}
-                      />
+                      <div data-tour="curtain">
+                        <CurtainToggle
+                          pressed={page.curtain.isOpen}
+                          onPressedChange={page.curtain.toggle}
+                          isLocked={page.curtain.isLocked}
+                          isLoading={page.curtain.isLoading}
+                          isError={page.curtain.isError}
+                        />
+                      </div>
                     </>
                   )}
                   {page.isImageLoading && (
@@ -166,23 +185,27 @@ export function FireReportPage() {
                 )}
               </div>
               <div className="pointer-events-auto flex flex-col items-end gap-2">
-                <MapLayersPopover
-                  layers={mapLayerOrder}
-                  visibleLayers={page.visibleLayers}
-                  onLayerVisibleChange={page.setLayerVisible}
-                />
-                {page.context.view && (
-                  <WeatherBadge
-                    towardsDeg={page.context.view.weather.towardsDeg}
-                    wind={page.context.view.weather.wind}
-                    conditions={page.context.view.weather.conditions}
+                <div data-tour="layers">
+                  <MapLayersPopover
+                    layers={mapLayerOrder}
+                    visibleLayers={page.visibleLayers}
+                    onLayerVisibleChange={page.setLayerVisible}
                   />
+                </div>
+                {page.context.view && (
+                  <div data-tour="weather">
+                    <WeatherBadge
+                      weather={page.context.view.weather}
+                      isExpanded={page.weather.isExpanded}
+                      onToggleExpanded={page.weather.toggleExpanded}
+                    />
+                  </div>
                 )}
               </div>
             </div>
 
             {page.legend && (
-              <div className="absolute bottom-3 left-3">
+              <div data-tour="legend" className="absolute bottom-3 left-3">
                 <MapLegend
                   severity={page.legend.severity}
                   layers={page.legend.layers}
@@ -198,10 +221,16 @@ export function FireReportPage() {
         className="flex min-h-0 flex-1 flex-col border-t bg-background lg:w-[480px] lg:flex-none lg:border-t-0 lg:border-l"
       >
         <header className="flex flex-col gap-3 border-b bg-card p-4">
-          <img src={compasWordmark} alt={t.app.logo} className="h-auto w-36 max-w-full self-start object-contain" />
+          <div className="flex items-center justify-between gap-2">
+            <img src={compasWordmark} alt={t.app.logo} className="h-auto w-36 max-w-full object-contain" />
+            <Button variant="ghost" size="sm" disabled={!view} onClick={page.tour.start}>
+              <IconRoute data-icon="inline-start" />
+              {t.tour.start}
+            </Button>
+          </div>
           <div className="flex items-center justify-between gap-2">
             <FireSelector fires={page.fires} value={page.fireId} onChange={page.selectFire} />
-            <Button variant="outline" size="sm" onClick={() => page.fireImport.setIsOpen(true)}>
+            <Button data-tour="import" variant="outline" size="sm" onClick={() => page.fireImport.setIsOpen(true)}>
               <IconUpload data-icon="inline-start" />
               {t.app.import}
             </Button>
@@ -222,7 +251,7 @@ export function FireReportPage() {
 
             {view && (
               <>
-                <section aria-label={t.kpis.title} className="grid grid-cols-2 gap-3">
+                <section data-tour="kpis" aria-label={t.kpis.title} className="grid grid-cols-2 gap-3">
                   {view.kpis.map((kpi) => (
                     <StatsCard1
                       key={kpi.id}
@@ -252,13 +281,15 @@ export function FireReportPage() {
                     {t.app.contextError}
                   </p>
                 )}
-                <FireZoneList
-                  zones={page.fireZones.shown}
-                  hiddenCount={page.fireZones.hiddenCount}
-                  isExpanded={page.fireZones.isExpanded}
-                  onToggleExpanded={page.fireZones.toggleExpanded}
-                  onFocusZone={(zone) => page.focusZone(zone.bounds)}
-                />
+                <div data-tour="fireZones">
+                  <FireZoneList
+                    zones={page.fireZones.shown}
+                    hiddenCount={page.fireZones.hiddenCount}
+                    isExpanded={page.fireZones.isExpanded}
+                    onToggleExpanded={page.fireZones.toggleExpanded}
+                    onFocusZone={(zone) => page.focusZone(zone.bounds)}
+                  />
+                </div>
               </>
             )}
           </div>
@@ -270,12 +301,31 @@ export function FireReportPage() {
         onOpenChange={page.fireImport.setIsOpen}
         place={page.fireImport.place}
         onPlaceChange={page.fireImport.setPlace}
+        imageName={page.fireImport.imageName}
         onImageChange={page.fireImport.setImage}
         onSubmit={page.fireImport.submit}
         canSubmit={page.fireImport.canSubmit}
         isPending={page.fireImport.isPending}
         errorMessage={page.fireImport.errorMessage}
       />
+
+      {page.tour.step && (
+        <>
+          <TourSpotlight highlight={page.tour.step.highlight} />
+          <TourCard
+            anchor={page.tour.step.anchor}
+            side={page.tour.step.side}
+            title={page.tour.step.title}
+            description={page.tour.step.description}
+            progress={page.tour.step.progress}
+            isFirst={page.tour.step.isFirst}
+            isLast={page.tour.step.isLast}
+            onBack={page.tour.back}
+            onNext={page.tour.next}
+            onClose={page.tour.close}
+          />
+        </>
+      )}
     </div>
   )
 }

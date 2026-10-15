@@ -76,6 +76,13 @@ class AnalysisResult(BaseModel):
     analysis: FireAnalysis
 
 
+class KilometrePoint(BaseModel):
+    """Official kilometre point (hito kilométrico) of a road."""
+
+    km: float
+    lonlat: tuple[float, float]
+
+
 class AffectedRoad(BaseModel):
     """A road crossing the burned area, so presumably cut during the fire (estimated, not an official closure)."""
 
@@ -86,6 +93,8 @@ class AffectedRoad(BaseModel):
     km_inside: float
     geometry: dict[str, Any]
     """GeoJSON MultiLineString (lon/lat) of the stretches inside the burned area."""
+    kilometre_points: list[KilometrePoint]
+    """Official kilometre points of the road around the burned area, empty for roads without a `ref`."""
 
 
 class WeatherHour(BaseModel):

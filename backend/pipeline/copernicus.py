@@ -17,6 +17,9 @@ from pipeline.grid import Grid
 
 PROCESS_URL: str = "https://sh.dataspace.copernicus.eu/api/v1/process"
 CACHE_DIR: Path = cache.CACHE_DIR / "copernicus"
+RATE_LIMIT_WAIT_MS: int = 5000
+"""Wait after a 429 that comes without `Retry-After`. Copernicus limits processing units per minute, so big scenes
+(Madrid-Ávila: 56 tiles) always reach the limit and have to wait for the next slot."""
 
 
 class QuotaExhaustedError(Exception):
@@ -84,8 +87,10 @@ def _token() -> str:
 
 
 async def _fetch_tile(client: httpx.AsyncClient, semaphore: asyncio.Semaphore, request: dict[str, object]) -> NDArray[np.uint16]:
+    """Rate limit answers (429) wait for the slot Copernicus gives and do not count as failed attempts."""
     async with semaphore:
-        for attempt in range(CONFIG.download_retries):
+        failures = 0
+        while failures < CONFIG.download_retries:
             try:
                 token = await asyncio.to_thread(_token)
                 response = await client.post(PROCESS_URL, json=request, headers={"Authorization": f"Bearer {token}"})
@@ -94,11 +99,15 @@ async def _fetch_tile(client: httpx.AsyncClient, semaphore: asyncio.Semaphore, r
                         return dataset.read()
                 if response.status_code == 403:
                     raise QuotaExhaustedError(response.text)
-                if 400 <= response.status_code < 500 and response.status_code != 429:
+                if response.status_code == 429:
+                    await asyncio.sleep(int(response.headers.get("retry-after", RATE_LIMIT_WAIT_MS)) / 1000)
+                    continue
+                if 400 <= response.status_code < 500:
                     response.raise_for_status()
             except httpx.TransportError:
                 pass
-            await asyncio.sleep(5 * (attempt + 1))
+            failures += 1
+            await asyncio.sleep(5 * failures)
     raise RuntimeError(f"Copernicus Process API failed {CONFIG.download_retries} times for bbox {request['input']['bounds']['bbox']}")
 
 

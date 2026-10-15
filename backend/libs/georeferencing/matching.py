@@ -7,7 +7,7 @@ import numpy as np
 from libs.georeferencing.mercator import MercatorBox
 
 QUERY_WIDTH_PX = 1250
-MAX_FEATURES = 8000
+MAX_FEATURES = 40000
 RATIO_TEST = 0.75
 RANSAC_THRESHOLD_PX = 3.0
 MIN_INLIERS = 12

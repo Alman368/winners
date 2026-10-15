@@ -881,7 +881,7 @@ type MapGeoJSONFeature<
 > = Omit<MapLibreGL.MapGeoJSONFeature, "properties"> & { properties: P };
 
 /** Event payload passed to MapGeoJSON interaction callbacks. */
-type MapGeoJSONEvent<
+export type MapGeoJSONEvent<
   P extends GeoJSON.GeoJsonProperties = GeoJSON.GeoJsonProperties,
 > = {
   /** The feature under the cursor, with its typed GeoJSON properties. */
@@ -926,7 +926,7 @@ type MapGeoJSONProps<
   fillHoverPaint?: MapFillPaint;
   /** Callback when a feature is clicked. */
   onClick?: (e: MapGeoJSONEvent<P>) => void;
-  /** Callback fired when the hovered feature changes; `null` when the cursor leaves. */
+  /** Callback fired as the cursor moves over the features; `null` when the cursor leaves. */
   onHover?: (e: MapGeoJSONEvent<P> | null) => void;
   /** Whether features respond to mouse events (default: false). */
   interactive?: boolean;
@@ -1091,9 +1091,10 @@ function MapGeoJSON<
     beforeId,
   ]);
 
-  // Interaction handlers (bound to the fill layer).
+  // Interaction handlers (bound to the fill layer, or to the outline layer when there is no fill).
+  const interactiveLayerId = showFill ? fillLayerId : lineLayerId;
   useEffect(() => {
-    if (!isLoaded || !map || !interactive || !showFill) return;
+    if (!isLoaded || !map || !interactive) return;
 
     let hoveredId: string | number | null = null;
 
@@ -1117,9 +1118,7 @@ function MapGeoJSON<
       if (!feature) return;
       map.getCanvas().style.cursor = "pointer";
 
-      const featureId = feature.id;
-      if (featureId === hoveredId) return;
-      setHover(featureId ?? null);
+      setHover(feature.id ?? null);
       latestRef.current.onHover?.({
         feature: feature as unknown as MapGeoJSONFeature<P>,
         longitude: e.lngLat.lng,
@@ -1145,18 +1144,18 @@ function MapGeoJSON<
       });
     };
 
-    map.on("mousemove", fillLayerId, handleMouseMove);
-    map.on("mouseleave", fillLayerId, handleMouseLeave);
-    map.on("click", fillLayerId, handleClick);
+    map.on("mousemove", interactiveLayerId, handleMouseMove);
+    map.on("mouseleave", interactiveLayerId, handleMouseLeave);
+    map.on("click", interactiveLayerId, handleClick);
 
     return () => {
-      map.off("mousemove", fillLayerId, handleMouseMove);
-      map.off("mouseleave", fillLayerId, handleMouseLeave);
-      map.off("click", fillLayerId, handleClick);
+      map.off("mousemove", interactiveLayerId, handleMouseMove);
+      map.off("mouseleave", interactiveLayerId, handleMouseLeave);
+      map.off("click", interactiveLayerId, handleClick);
       setHover(null);
       map.getCanvas().style.cursor = "";
     };
-  }, [isLoaded, map, fillLayerId, sourceId, interactive, showFill]);
+  }, [isLoaded, map, interactiveLayerId, sourceId, interactive]);
 
   return null;
 }

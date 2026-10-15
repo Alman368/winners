@@ -10,7 +10,7 @@ from shapely.geometry import LineString
 from api import analysis
 from libs.http_client import get_http_client
 from libs.roads import RoadWay
-from models import Weather
+from models import KilometrePoint, Weather
 from pipeline.models import BurnedArea, BurnedPolygon, FireAnalysis, Ring, SceneInfo, SceneInput, SmokeArea
 from tests.replay import ReplayTransport
 from tests.scenes import SCENES_DIR
@@ -79,6 +79,11 @@ def services(monkeypatch: pytest.MonkeyPatch) -> Iterator[dict[str, list[object]
             RoadWay(osm_id=2, ref="A-472", name=None, road_type="primary", line=LineString([(-6.80, 37.40), (-6.75, 37.40)])),
         ]
 
+    def fetch_kilometre_points(
+        client: httpx.Client, bboxes: list[tuple[float, float, float, float]]
+    ) -> dict[str, list[KilometrePoint]]:
+        return {}
+
     def fetch_weather(client: httpx.Client, lon: float, lat: float, start: date, end: date) -> Weather:
         calls["weather"].append((lon, lat, start, end))
         return WEATHER
@@ -86,6 +91,7 @@ def services(monkeypatch: pytest.MonkeyPatch) -> Iterator[dict[str, list[object]
     monkeypatch.setattr(analysis, "find_fire_start", find_fire_start)
     monkeypatch.setattr(analysis, "analyze", analyze)
     monkeypatch.setattr(analysis, "fetch_roads", fetch_roads)
+    monkeypatch.setattr(analysis, "fetch_kilometre_points", fetch_kilometre_points)
     monkeypatch.setattr(analysis, "fetch_weather", fetch_weather)
     yield calls
 

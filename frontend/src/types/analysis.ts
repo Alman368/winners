@@ -35,12 +35,18 @@ export type FireDays = {
   last: string
 }
 
+export type KilometrePoint = {
+  km: number
+  lonlat: [number, number]
+}
+
 export type AffectedRoad = {
   ref: string | null
   name: string | null
   road_type: string
   km_inside: number
   geometry: MultiLineString
+  kilometre_points: KilometrePoint[]
 }
 
 export type Weather = {

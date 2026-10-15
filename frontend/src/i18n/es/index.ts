@@ -8,21 +8,66 @@ export const es = {
     contextRunning: 'Cruzando el incendio con las carreteras y el tiempo. La primera vez puede tardar un minuto.',
     contextError: 'No se han podido calcular las carreteras cortadas ni el tiempo. Recarga la página más tarde.',
   },
+  tour: {
+    start: 'Visita guiada',
+    next: 'Siguiente',
+    back: 'Anterior',
+    finish: 'Terminar',
+    close: 'Cerrar la visita guiada',
+    progress: (step: number, total: number) => `${step} de ${total}`,
+    steps: {
+      legend: {
+        title: 'El incendio, medido',
+        description:
+          'Sobre la imagen del satélite Sentinel-2 dibujamos el perímetro quemado, la severidad del daño y el fuego activo en el momento de la toma. La leyenda dice cuántas hectáreas hay de cada clase.',
+      },
+      composites: {
+        title: 'Tres formas de ver la imagen',
+        description:
+          'Color real, como la verías desde un avión; infrarrojo, que atraviesa el humo y separa lo quemado de la vegetación sana; y, cuando existe, realce de fuego, que resalta las llamas.',
+      },
+      curtain: {
+        title: 'Antes y después',
+        description:
+          'Abre la cortina y deslízala para comparar el primer día del incendio con la imagen analizada y ver cuánto avanzó el fuego.',
+      },
+      layers: {
+        title: 'Qué hay alrededor',
+        description:
+          'Elige qué se dibuja: carreteras cortadas, núcleos de población, embalses o el perímetro oficial de EFFIS para contrastar nuestro resultado. Pasa por encima de una carretera cortada para ver su punto kilométrico.',
+      },
+      weather: {
+        title: 'El tiempo durante el incendio',
+        description:
+          'Viento, rachas, temperatura, humedad y lluvia de esos días. La flecha indica hacia dónde empujaba el viento al fuego.',
+      },
+      kpis: {
+        title: 'Las cifras clave',
+        description:
+          'Superficie quemada, severidad alta, frente activo y carreteras cortadas: lo esencial del incendio de un vistazo.',
+      },
+      fireZones: {
+        title: 'Dónde había fuego',
+        description: 'Las zonas con más frente activo en la toma, de mayor a menor. Pulsa una para centrar el mapa en ella.',
+      },
+      import: {
+        title: 'Analiza tu propio incendio',
+        description:
+          'Sube una imagen exportada del Copernicus Browser y di dónde fue. La situamos en el mapa aunque no tenga coordenadas y generamos el informe en unos minutos.',
+      },
+    },
+  },
   importFire: {
     title: 'Importar imagen',
-    description:
-      'Sube una exportación de un solo día de Copernicus Browser y escribe dónde es. La localizamos, buscamos el inicio del incendio en EFFIS y la analizamos con Sentinel-2.',
-    image: 'Imagen de Copernicus Browser',
-    place: 'Lugar',
-    placePlaceholder: 'Niebla (Huelva)',
+    chooseImage: 'Elegir imagen',
+    placePlaceholder: 'Lugar, p. ej. Niebla (Huelva)',
     submit: 'Analizar',
-    cancel: 'Cancelar',
-    running: 'Analizando la imagen con Copernicus. Puede tardar unos minutos.',
-    error:
-      'No se ha podido analizar la imagen. Comprueba que es una exportación de un solo día de Copernicus Browser, sin renombrar, y que el lugar es correcto.',
+    running: 'Analizando… puede tardar unos minutos',
     quotaError: 'La cuenta de Copernicus ha agotado su cuota. Hay que renovar la cuota o configurar unas credenciales con saldo.',
     effisError: 'EFFIS no está respondiendo y no hemos podido consultar el inicio del incendio. Vuelve a intentarlo en unos minutos.',
     contextError: 'La imagen ya está analizada, pero la consulta de carreteras o del tiempo ha fallado. Vuelve a intentarlo.',
+    error:
+      'No se ha podido analizar. Usa una exportación de un solo día de Copernicus Browser, sin renombrar, y revisa el lugar.',
   },
   scenes: {
     curtain: 'Comparar con el inicio',
@@ -59,6 +104,7 @@ export const es = {
       swir: 'Infrarrojo',
       wildfires: 'Realce de fuego',
     },
+    roadKilometre: (km: string) => `km ${km}`,
     layerNames: {
       severity: 'Severidad',
       burned: 'Perímetro quemado',
@@ -99,11 +145,18 @@ export const es = {
   weather: {
     title: 'Tiempo durante el incendio',
     windArrow: 'Hacia dónde empujaba el viento',
-    wind: (from: string, mean: string, gust: string) => `Viento del ${from} · ${mean} km/h · rachas de ${gust} km/h`,
-    conditions: (temperature: string, humidity: string, rain: string) =>
-      `Máx. ${temperature} °C · HR mín. ${humidity} % · ${rain}`,
-    rain: (mm: string) => `${mm} mm de lluvia`,
-    noRain: 'sin lluvia',
+    expand: 'Mostrar el tiempo',
+    collapse: 'Ocultar el tiempo',
+    windFrom: (from: string) => `Viento del ${from}`,
+    gusts: 'Rachas',
+    maxTemperature: 'Temp. máxima',
+    minHumidity: 'Humedad mínima',
+    rain: 'Lluvia',
+    speed: (kmh: string) => `${kmh} km/h`,
+    temperature: (celsius: string) => `${celsius} °C`,
+    humidity: (pct: string) => `${pct} %`,
+    rainAmount: (mm: string) => `${mm} mm`,
+    noRain: 'Sin lluvia',
     directions: ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSO', 'SO', 'OSO', 'O', 'ONO', 'NO', 'NNO'],
   },
 }

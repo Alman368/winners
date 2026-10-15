@@ -8,6 +8,7 @@ from shapely.geometry import LineString, MultiPolygon, box
 
 from libs import roads
 from libs.roads import OVERPASS_URL, RoadWay, affected_roads, fetch_roads
+from models import KilometrePoint
 
 RECORDED = json.loads((Path(__file__).parent / "fixtures" / "overpass_roads_niebla.json").read_text(encoding="utf-8"))
 NIEBLA_BBOX = (-6.84116, 37.39951, -6.47896, 37.57728)
@@ -52,7 +53,7 @@ def test_measures_the_kilometres_of_each_road_inside_the_burned_area() -> None:
         way(4, "N-9", None, "primary", (-6.80, 37.40), (-6.75, 37.40)),
     ]
 
-    result = affected_roads(ways, BURNED)
+    result = affected_roads(ways, BURNED, lambda bboxes: {})
 
     assert [(r.ref, r.name, r.road_type) for r in result] == [
         ("A-1", "Autovía del Sur", "motorway"),
@@ -69,7 +70,28 @@ def test_groups_unnamed_roads_by_type() -> None:
         way(11, None, None, "unclassified", (-6.68, 37.46), (-6.68, 37.48)),
     ]
 
-    [unnamed] = affected_roads(ways, BURNED)
+    [unnamed] = affected_roads(ways, BURNED, lambda bboxes: {})
 
     assert (unnamed.ref, unnamed.name, unnamed.road_type) == (None, None, "unclassified")
     assert unnamed.km_inside == pytest.approx(2 * KM_PER_0_02_DEG_LAT, rel=0.01)
+
+
+def test_attaches_the_kilometre_points_of_each_road_ref() -> None:
+    n9 = KilometrePoint(km=12, lonlat=(-6.65, 37.50))
+    a1 = KilometrePoint(km=40, lonlat=(-6.70, 37.50))
+    ways = [
+        way(1, "N-9;A-1", None, "trunk", (-6.75, 37.50), (-6.55, 37.50)),
+        way(2, None, "Camino de la Sierra", "tertiary", (-6.62, 37.52), (-6.58, 37.52)),
+    ]
+
+    requested: list[list[tuple[float, float, float, float]]] = []
+
+    def fetch_kilometre_points(bboxes: list[tuple[float, float, float, float]]) -> dict[str, list[KilometrePoint]]:
+        requested.append(bboxes)
+        return {"N-9": [n9], "A-1": [a1]}
+
+    shared, unnamed = affected_roads(ways, BURNED, fetch_kilometre_points)
+
+    assert shared.kilometre_points == [n9]
+    assert unnamed.kilometre_points == []
+    assert requested == [[pytest.approx((-6.70, 37.50, -6.60, 37.50))]]
