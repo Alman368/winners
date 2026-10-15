@@ -1,9 +1,10 @@
+import asyncio
 from datetime import date, timezone
 from pathlib import Path
 from typing import Annotated
 
 import httpx
-from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, Form, HTTPException, Response, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from shapely.geometry import MultiPolygon, Polygon
 
@@ -13,7 +14,7 @@ from libs.effis import FireStartNotFoundError, find_fire_start
 from libs.http_client import get_http_client
 from libs.roads import affected_roads, fetch_roads
 from libs.weather import fetch_weather
-from models import AnalysisReport, AnalysisResult, FireContext
+from models import AnalysisInProgress, AnalysisReport, AnalysisResult, FireContext
 from pipeline.config import CONFIG
 from pipeline.models import FireAnalysis, SceneInput
 from pipeline.pipeline import analyze
@@ -22,6 +23,8 @@ router: APIRouter = APIRouter(prefix="/analysis", tags=["analysis"])
 
 EFFIS_TIMEOUT_S: int = 180
 DEMO_SCENES_DIR: Path = Path(__file__).resolve().parents[1] / "pipeline" / "scenes"
+
+_scene_analyses: dict[str, asyncio.Task[FireAnalysis]] = {}
 
 
 async def _analyze_image(client: httpx.Client, content: bytes, filename: str, place: str) -> AnalysisResult:
@@ -95,27 +98,44 @@ async def analyze_upload(
     return AnalysisReport(**result.model_dump(), context=context)
 
 
-@router.get("/scenes/{scene_id}")
-async def analyze_demo_scene(scene_id: str) -> FireAnalysis:
-    """Runs the fire detection pipeline on one of the example scenes in `pipeline/scenes/`.
+@router.get("/scenes/{scene_id}", responses={202: {"model": AnalysisInProgress}})
+async def analyze_demo_scene(scene_id: str, response: Response) -> FireAnalysis | AnalysisInProgress:
+    """Analyses one of the example scenes in `pipeline/scenes/`, in the background.
 
-    The result is cached per scene: the first run downloads Sentinel-2 data and can take several minutes.
+    The first run downloads Sentinel-2 data and takes minutes, longer than a request should stay open. It answers
+    202 while the analysis runs, and the result once it is ready, from then on from `data/cache/analysis-scenes/`.
+    The analysis is a task of its own, so a client that disconnects does not cancel it.
     """
     scene_file = DEMO_SCENES_DIR / f"{scene_id}.json"
     if not scene_file.exists():
         raise HTTPException(status_code=404, detail="scene_not_found")
-    scene = SceneInput.model_validate_json(scene_file.read_text())
-    return await cache.cached(
-        cache.CACHE_DIR / "analysis-scenes",
-        cache.cache_key(scene_file.read_bytes()),
-        FireAnalysis,
-        lambda: analyze(scene),
-    )
+    key = cache.cache_key(scene_file.read_bytes())
+    task = _scene_analyses.get(key)
+    if task is None:
+        stored = cache.load(cache.CACHE_DIR / "analysis-scenes", key, FireAnalysis)
+        if stored is not None:
+            return stored
+        scene = SceneInput.model_validate_json(scene_file.read_text())
+        _scene_analyses[key] = asyncio.create_task(
+            cache.cached(cache.CACHE_DIR / "analysis-scenes", key, FireAnalysis, lambda: analyze(scene))
+        )
+    elif task.done():
+        del _scene_analyses[key]
+        return task.result()
+    response.status_code = 202
+    return AnalysisInProgress()
 
 
-@router.get("/scenes/{scene_id}/context")
-async def demo_scene_context(scene_id: str, client: Annotated[httpx.Client, Depends(get_http_client)]) -> FireContext:
-    """Roads cut by the fire and weather for one of the example scenes in `pipeline/scenes/`."""
-    analysis = await analyze_demo_scene(scene_id)
+@router.get("/scenes/{scene_id}/context", responses={202: {"model": AnalysisInProgress}})
+async def demo_scene_context(
+    scene_id: str, response: Response, client: Annotated[httpx.Client, Depends(get_http_client)]
+) -> FireContext | AnalysisInProgress:
+    """Roads cut by the fire and weather for one of the example scenes in `pipeline/scenes/`.
+
+    Like the scene analysis it builds on, it answers 202 until that analysis is ready.
+    """
+    analysis = await analyze_demo_scene(scene_id, response)
+    if isinstance(analysis, AnalysisInProgress):
+        return analysis
     scene = SceneInput.model_validate_json((DEMO_SCENES_DIR / f"{scene_id}.json").read_text())
     return await fire_context(client, analysis, scene.fire_start)

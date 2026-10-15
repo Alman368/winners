@@ -14,5 +14,7 @@ export type FireAnalysis = {
   }
   active_fires: { id: number; front_length_km: number; geometry: MultiPolygon }[]
   active_front_km: number
-  geojson: FeatureCollection<MultiPolygon, { kind: 'burned_area' | 'active_fire' }>
+  geojson: FeatureCollection<MultiPolygon, { kind: 'burned_area' | 'smoke' | 'active_fire' }>
 }
+
+export type AnalysisInProgress = { status: 'processing' }

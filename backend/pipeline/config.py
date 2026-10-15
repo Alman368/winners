@@ -41,8 +41,26 @@ class Config:
     """Median filter window applied to dNBR before drawing the severity map. Per-pixel classes alternate and draw
     thousands of specks (La Mierla: 19 600 pieces, 8 MB). Class areas are still measured without smoothing."""
 
-    severity_map_min_patch_ha: float = 1.0
-    """Severity map pieces below this size are not drawn."""
+    map_min_patch_ha: float = 1.0
+    """Severity and smoke map pieces below this size are not drawn."""
+
+    smoke_min_b04_increase: float = 0.05
+    """Minimum rise of red reflectance (B04) from the pre-fire composite that marks smoke. Smoke scatters visible light
+    strongly and is almost transparent at 2.2 µm. Unburned land far from the fires rises 0.002-0.015 (median)."""
+
+    smoke_hiding_scl_classes: tuple[int, ...] = (8, 9, 10)
+    """SCL cloud classes that dense smoke falls into on the fire day. Under smoke they are assessed with dNBR2."""
+
+    smoke_max_distance_m: float = 1000.0
+    """Smoke patches must come this close to the burned area: haze or harvests elsewhere in the scene are not smoke."""
+
+    smoke_cleaning_m: float = 40.0
+    """Opening and closing radius that removes isolated bright pixels from the smoke mask."""
+
+    smoke_dnbr2_grow: float = 0.10
+    """Under smoke, pixels connected to the burned area with dNBR2 above this are burned. dNBR2 uses only SWIR bands,
+    which see through smoke: it separates burned from unburned under smoke with AUC 0.93 against EFFIS, dNBR 0.77-0.80.
+    At 0.10, 92-99 % of the added area falls inside the official EFFIS perimeters."""
 
     fire_min_b12: float = 0.5
     """Minimum SWIR 2.2 µm reflectance of an active fire pixel. Burned ash stays around 0.24 (measured in Niebla)."""

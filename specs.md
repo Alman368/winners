@@ -487,7 +487,7 @@ Las fuentes externas se testean con respuestas grabadas, y los cruces geométric
 
 **Dónde sale:**
 - `POST /api/analysis`: la respuesta (`AnalysisReport`) es la de antes más el campo `context`.
-- `GET /api/analysis/scenes/{scene_id}/context`: el `FireContext` de una escena de demo, a juego con `GET /api/analysis/scenes/{scene_id}`, que no cambia.
+- `GET /api/analysis/scenes/{scene_id}/context`: el `FireContext` de una escena de demo, a juego con `GET /api/analysis/scenes/{scene_id}`, que no cambia. Mientras el análisis de la escena está en curso responde **202 `{"status": "processing"}`**, igual que ese endpoint.
 
 **Cómo** (`backend/libs/roads.py`, `backend/libs/weather.py`, `fire_context()` en `backend/api/analysis.py`):
 1. **Carreteras de OpenStreetMap** con Overpass, solo en los límites de la zona quemada: ninguna carretera fuera de ese recuadro puede cruzarla.

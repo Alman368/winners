@@ -44,7 +44,15 @@ class BurnedArea(BaseModel):
     polygons: list[BurnedPolygon]
     area_ha: float
     perimeter_km: float
+    under_smoke_ha: float
+    """Part of the area found under smoke with dNBR2."""
     severity: list[SeverityClass]
+
+
+class SmokeArea(BaseModel):
+    area_ha: float
+    geometry: dict[str, Any]
+    """GeoJSON MultiPolygon in lon/lat of the smoke plumes attached to the fire."""
 
 
 class Point(BaseModel):
@@ -66,6 +74,7 @@ class ActiveFire(BaseModel):
 class FireAnalysis(BaseModel):
     scene: SceneInfo
     burned_area: BurnedArea
+    smoke: SmokeArea
     not_assessable_ha: float
     active_fires: list[ActiveFire]
     active_front_km: float

@@ -175,8 +175,29 @@ Ojo: la SCL puede clasificar el humo denso como nube. Se trata en §5.4.
 
 ### 5.4 Humo
 
-1. **Detección del humo:** velo con reflectancia alta en el visible (B04) respecto al SWIR (B12) en la imagen posterior, que no está en la anterior. Umbrales en `config.py`, medidos contra la anotación manual. Incluye lo que la SCL marque como nube (8, 9) si está pegado al incendio. No se puede depender solo de la SCL: en Niebla el humo casi no sale como nube (§3.2).
-2. **Bajo el humo:** en Madrid-Ávila el dNBR ya detecta la zona quemada bajo el humo del suroeste y coincide con EFFIS (§3.1), así que con humo poco denso no hace falta nada especial. Para humo denso, medir si `dNBR2` separa quemado de no quemado bajo el humo (el SWIR atraviesa el humo). Si funciona en las escenas con humo (Madrid suroeste, Niebla noreste, La Mierla norte), se usa ahí en lugar de dNBR, con sus propios umbrales. Si no, la zona de humo contigua al incendio se devuelve como **"bajo humo, sin evaluar"** y no se suma al área quemada.
+Implementado en `pipeline/smoke.py`.
+
+1. **Detección del humo:** píxeles no quemados cuya reflectancia en el rojo (`B04`) sube más de **0.05** respecto a la composición previa. El humo dispersa mucho la luz visible y es casi transparente a 2.2 µm. Lejos del incendio, `B04` sube 0.002–0.015 de mediana. Se limpia con apertura y cierre de 40 m y se quedan solo las manchas que llegan a **menos de 1 km** de la zona quemada (la bruma o las cosechas del resto de la escena no son humo).
+2. **El humo denso sale como nube en la SCL:** en el humo se evalúan también los píxeles que la SCL del día del incendio marca como nube (clases 8, 9, 10), siempre que la composición previa esté despejada. Sin esto, en Madrid-Ávila solo se recuperaban 596 ha bajo humo en vez de 3099.
+3. **Quemado bajo el humo con dNBR2:** `dNBR2 = NBR2_pre − NBR2_post`, con `NBR2 = (B11 − B12) / (B11 + B12)`, usa solo bandas SWIR, que atraviesan el humo. Contra los perímetros de EFFIS, bajo el humo separa quemado de no quemado mucho mejor que el dNBR:
+
+   | Escena | AUC dNBR | AUC dNBR2 |
+   |---|---|---|
+   | La Mierla | 0.77 | **0.93** |
+   | Madrid-Ávila | 0.80 | **0.93** |
+
+   (Niebla no sirve para esta prueba: el perímetro final de EFFIS incluye lo que ardió días después bajo el humo.) Se añaden a la zona quemada los píxeles de humo con **dNBR2 > 0.10** conectados a la zona quemada visible:
+
+   | Escena | Añadido bajo humo | Dentro de EFFIS |
+   |---|---|---|
+   | Niebla | 77 ha | 99 % |
+   | La Mierla | 603 ha | 92 % |
+   | Madrid-Ávila | 3099 ha | 97 % |
+
+4. **Salida:** `burned_area.under_smoke_ha` (parte del área encontrada bajo humo) y `smoke` (superficie y polígonos de los penachos). Los píxeles de humo ya no cuentan como "no evaluables".
+5. **Limitación:** la severidad se sigue calculando con dNBR, que el humo sesga a la baja; lo quemado bajo humo tiende a salir como severidad baja.
+
+Con el humo, el área total dentro de los perímetros de EFFIS es del 93.2 % (Niebla), 97.1 % (La Mierla) y 96.4 % (Madrid-Ávila).
 
 ### 5.5 Severidad
 
@@ -245,7 +266,7 @@ Sobre la imagen posterior en reflectancia, a 20 m:
 
 ## 8. Salida
 
-Un único resultado tipado (modelo pydantic `FireAnalysis` en `models.py`) que se serializa a este JSON. `smoke_unassessed` todavía no está implementado (§5.4):
+Un único resultado tipado (modelo pydantic `FireAnalysis` en `models.py`) que se serializa a este JSON:
 
 ```json
 {
@@ -266,6 +287,7 @@ Un único resultado tipado (modelo pydantic `FireAnalysis` en `models.py`) que s
     ],
     "area_ha": 1240.5,
     "perimeter_km": 18.6,
+    "under_smoke_ha": 76.6,
     "severity": [
       { "name": "low", "area_ha": 250.1, "geometry": { "type": "MultiPolygon", "coordinates": [] } },
       { "name": "moderate_low", "area_ha": 420.3, "geometry": { "type": "MultiPolygon", "coordinates": [] } },
@@ -273,9 +295,9 @@ Un único resultado tipado (modelo pydantic `FireAnalysis` en `models.py`) que s
       { "name": "high", "area_ha": 190.1, "geometry": { "type": "MultiPolygon", "coordinates": [] } }
     ]
   },
-  "smoke_unassessed": {
-    "polygons": [ { "exterior": { "lonlat": [], "pixel": [] }, "holes": [] } ],
-    "area_ha": 310.0
+  "smoke": {
+    "area_ha": 3881.0,
+    "geometry": { "type": "MultiPolygon", "coordinates": [] }
   },
   "not_assessable_ha": 12.4,
   "active_fires": [
@@ -295,8 +317,8 @@ Un único resultado tipado (modelo pydantic `FireAnalysis` en `models.py`) que s
 ```
 
 - `pixel` está en coordenadas de la **imagen original** (la que recibe el usuario), `lonlat` en EPSG:4326.
-- `geojson` contiene el área quemada (MultiPolygon con agujeros, con `area_ha`, `perimeter_km` y `severity_ha`) y los focos como puntos con sus propiedades. La zona bajo humo se añadirá cuando se implemente.
-- `not_assessable_ha`: superficie excluida por nubes, sombras o falta de datos (§5.2).
+- `geojson` contiene el área quemada (MultiPolygon con agujeros, con `area_ha`, `perimeter_km`, `under_smoke_ha` y `severity_ha`), el humo (`kind: "smoke"`) y los focos como puntos con sus propiedades.
+- `not_assessable_ha`: superficie excluida por nubes, sombras o falta de datos (§5.2), sin contar el humo, que se evalúa con dNBR2 (§5.4).
 - `severity[].geometry`: polígonos de cada clase en lon/lat para pintar el mapa de severidad. Se dibujan sobre el dNBR suavizado con una mediana de 100 m y sin las piezas de menos de 1 ha: sin suavizar, las clases cambian de un píxel a otro y salen miles de motas (La Mierla: 19 600 piezas, unos 8 MB). `area_ha` se mide píxel a píxel, sin suavizar.
 - `active_fires[].geometry`: polígono de los píxeles de cada foco, en lon/lat.
 
@@ -317,6 +339,7 @@ backend/pipeline/
   active_fire.py    Agrupación, persistencia y contexto de focos (§6)
   vectorize.py      Máscara → polígonos simplificados, superficie y perímetro geodésicos (§7)
   models.py         Entrada (SceneInput) y salida (FireAnalysis) en pydantic (§2, §8)
+  smoke.py          Humo y quemado bajo el humo con dNBR2 (§5.4)
   pipeline.py       Orquestación: entrada → resultado
   __main__.py       `uv run python -m pipeline pipeline/scenes/niebla.json`
   scenes/           Entradas de las tres escenas de ejemplo
@@ -327,7 +350,7 @@ backend/pipeline/
 - Credenciales en variables de entorno `COPERNICUS_CLIENT_ID` y `COPERNICUS_CLIENT_SECRET` (`backend/.env`, ver `.env.example`).
 - **Pipeline puro**: las funciones de detección reciben arrays y devuelven arrays/resultados tipados. Solo `copernicus.py` habla con la red.
 - Orden de ejecución: descarga posterior y composición previa (en paralelo) → píxeles evaluables → dNBR → área quemada → fuego activo → vectorización → estadísticas.
-- **Pendiente de implementar:** humo (§5.4), unión de polígonos cercanos para el perímetro (§7.5) y tests (§10.5).
+- **Pendiente de implementar:** tests (§10.5).
 
 ---
 

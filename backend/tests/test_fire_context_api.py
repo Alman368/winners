@@ -11,7 +11,7 @@ from api import analysis
 from libs.http_client import get_http_client
 from libs.roads import RoadWay
 from models import Weather
-from pipeline.models import BurnedArea, BurnedPolygon, FireAnalysis, Ring, SceneInfo, SceneInput
+from pipeline.models import BurnedArea, BurnedPolygon, FireAnalysis, Ring, SceneInfo, SceneInput, SmokeArea
 from tests.replay import ReplayTransport
 from tests.scenes import SCENES_DIR
 
@@ -37,8 +37,10 @@ def fire_analysis(scene: SceneInput) -> FireAnalysis:
             polygons=[BurnedPolygon(exterior=Ring(lonlat=BURNED_SQUARE, pixel=[(0, 0)] * 5), holes=[])],
             area_ha=8000.0,
             perimeter_km=40.0,
+            under_smoke_ha=0.0,
             severity=[],
         ),
+        smoke=SmokeArea(area_ha=0.0, geometry={"type": "MultiPolygon", "coordinates": []}),
         not_assessable_ha=0.0,
         active_fires=[],
         active_front_km=0.0,
@@ -123,10 +125,14 @@ def test_the_fire_context_of_an_uploaded_scene_is_cached(services: dict[str, lis
     assert len(services["weather"]) == 1
 
 
-def test_a_demo_scene_reports_its_fire_context(services: dict[str, list[object]]) -> None:
-    response = TestClient(app).get("/analysis/scenes/niebla/context")
+def test_a_demo_scene_reports_its_fire_context_once_its_analysis_is_ready(services: dict[str, list[object]]) -> None:
+    with TestClient(app) as client:
+        first = client.get("/analysis/scenes/niebla/context")
+        responses = [client.get("/analysis/scenes/niebla/context") for _ in range(50)]
+        ready = next(response for response in responses if response.status_code == 200)
 
-    assert response.status_code == 200
-    assert [road["ref"] for road in response.json()["roads"]] == ["N-435"]
+    assert first.status_code == 202
+    assert first.json() == {"status": "processing"}
+    assert [road["ref"] for road in ready.json()["roads"]] == ["N-435"]
     [(lon, lat, start, end)] = services["weather"]
     assert (start, end) == (date(2026, 8, 7), date(2026, 8, 8))

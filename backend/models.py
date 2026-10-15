@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -124,3 +124,7 @@ class FireContext(BaseModel):
 
 class AnalysisReport(AnalysisResult):
     context: FireContext
+
+
+class AnalysisInProgress(BaseModel):
+    status: Literal["processing"] = "processing"

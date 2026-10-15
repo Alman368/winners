@@ -5,7 +5,7 @@ import { fetchSceneAnalysis } from '@/api/analysis'
 import { fetchBasemapStyle } from '@/api/basemap'
 import { fetchFireReport } from '@/api/fireReports'
 import { fetchScenePasses } from '@/api/scenes'
-import { applyAnalysis } from '@/lib/analysis'
+import { applyAnalysis, isAnalysisInProgress } from '@/lib/analysis'
 import { demoFires } from '@/lib/demoFires'
 import {
   buildAffectedRows,
@@ -33,6 +33,7 @@ const initialLayers: Record<MapLayerId, boolean> = {
 }
 
 const INITIAL_COMPARE_OPACITY = 0.5
+const ANALYSIS_POLL_MS = 5000
 
 export function useFireReportPage() {
   const [fireId, setFireId] = useState(demoFires[0].id)
@@ -57,9 +58,12 @@ export function useFireReportPage() {
     queryKey: ['fire-analysis', sceneId],
     queryFn: () => fetchSceneAnalysis(sceneId),
     staleTime: Infinity,
+    retry: false,
+    refetchInterval: (query) => (query.state.data && isAnalysisInProgress(query.state.data) ? ANALYSIS_POLL_MS : false),
   })
   const staticReport = reportQuery.data
-  const analysis = analysisQuery.data
+  const isAnalysisRunning = analysisQuery.data !== undefined && isAnalysisInProgress(analysisQuery.data)
+  const analysis = analysisQuery.data && !isAnalysisInProgress(analysisQuery.data) ? analysisQuery.data : undefined
   const report = useMemo(
     () => (staticReport && analysis ? applyAnalysis(staticReport, analysis) : undefined),
     [staticReport, analysis],
@@ -167,7 +171,8 @@ export function useFireReportPage() {
       isLoading: passesQuery.isLoading,
       isError: passesQuery.isError,
     },
-    isLoading: reportQuery.isLoading || analysisQuery.isLoading || basemapQuery.isLoading,
+    isAnalysisRunning,
+    isLoading: reportQuery.isLoading || analysisQuery.isLoading || isAnalysisRunning || basemapQuery.isLoading,
     isError: reportQuery.isError || analysisQuery.isError || basemapQuery.isError,
   }
 }

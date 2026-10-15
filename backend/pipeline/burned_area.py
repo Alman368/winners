@@ -8,7 +8,7 @@ CROSS: NDArray[np.bool_] = ndimage.generate_binary_structure(2, 1)
 SQUARE: NDArray[np.bool_] = ndimage.generate_binary_structure(2, 2)
 
 
-def _disk(radius_px: int) -> NDArray[np.bool_]:
+def disk(radius_px: int) -> NDArray[np.bool_]:
     offsets = np.arange(-radius_px, radius_px + 1)
     return np.hypot(*np.meshgrid(offsets, offsets)) <= radius_px
 
@@ -42,7 +42,7 @@ def detect_burned(dnbr: NDArray[np.float32], assessable: NDArray[np.bool_], pixe
     candidates = assessable & (dnbr > CONFIG.dnbr_grow)
     burned = ndimage.binary_propagation(seeds, structure=SQUARE, mask=candidates)
     burned = ndimage.binary_opening(burned, structure=CROSS)
-    burned = ndimage.binary_closing(burned, structure=_disk(round(CONFIG.burned_closing_m / CONFIG.resolution_m)))
+    burned = ndimage.binary_closing(burned, structure=disk(round(CONFIG.burned_closing_m / CONFIG.resolution_m)))
     burned = _remove_small_components(burned, round(CONFIG.min_burned_area_ha / pixel_area_ha))
     return _fill_small_holes(burned, round(CONFIG.min_hole_area_ha / pixel_area_ha))
 

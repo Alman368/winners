@@ -17,7 +17,7 @@ Tareas pendientes del algoritmo (`backend/pipeline/`), por prioridad. El detalle
 ## Algoritmo
 
 1. [x] **Perímetro inflado en escenas grandes**: cierre de 40 m y perímetro solo de los polígonos de al menos 50 ha (§7.5).
-2. [ ] **Humo.** Máscara de humo, prueba de dNBR2 bajo el humo denso y salida `smoke_unassessed` (§5.4).
+2. [x] **Humo**: máscara de humo (subida de `B04`, también sobre lo que la SCL marca como nube), quemado bajo el humo con dNBR2 > 0.10 y salida `smoke` y `under_smoke_ha` (§5.4). Pendiente: mostrar la capa de humo en el frontend.
 3. [ ] **Validar el fuego activo contra NASA FIRMS.** Frente a Wildfires el recall es de 0.96–1.00, pero la precisión baja a 0.25–0.63. Decidir entre nuestra regla y `B11 + B12 > 1` (§6.1).
 4. [ ] **Focos fragmentados.** Siguen saliendo 180 focos en Madrid-Ávila; revisar la distancia de agrupación (§6.2).
 5. [ ] **Revisar el 3–6 % detectado fuera de EFFIS** en Niebla y Madrid-Ávila: bordes, cosechas o imprecisiones del contorno oficial (§3.1).
@@ -36,6 +36,6 @@ Tareas pendientes del algoritmo (`backend/pipeline/`), por prioridad. El detalle
 - [x] **`backend/libs/detection.py`**: se conserva a propósito como análisis rápido sobre el JPG, sin red ni cuenta. El análisis principal es este algoritmo (ver el mapa de módulos en `specs.md` §4.1).
 - [x] **Endpoint de la API**: `POST /api/analysis`, con caché del resultado completo en `backend/data/cache/analysis/`. La caché de rásteres pasa a `backend/data/cache/copernicus/`.
 - [x] **Frontend conectado al algoritmo**: `GET /api/analysis/scenes/{scene_id}` analiza las escenas de `pipeline/scenes/` (caché en `backend/data/cache/analysis-scenes/`). La página de informe sustituye el área quemada, el perímetro, los focos y la severidad (con su capa en el mapa) del `report.json` de la demo por los del algoritmo (`frontend/src/lib/analysis.ts`).
-- [ ] **Primera ejecución de las escenas de ejemplo**: sin caché, Madrid-Ávila tarda unos 7 minutos y el proxy de Vite corta a los 120 s. Hay que calcularlas una vez en cada entorno (por ejemplo, `curl localhost:8765/api/analysis/scenes/madrid_avila`) antes de abrir la página. Tras cambiar el algoritmo, borrar `backend/data/cache/analysis-scenes/`.
+- [x] **Primera ejecución de las escenas de ejemplo**: `GET /api/analysis/scenes/{scene_id}` responde `202` mientras el análisis corre en segundo plano (una tarea por escena, que no se cancela si el cliente se desconecta) y el frontend consulta cada 5 s sin reintentos automáticos, con un aviso de espera. La detección corre en un hilo para que el servidor siga respondiendo. Tras cambiar el algoritmo, borrar `backend/data/cache/analysis-scenes/`.
 - [ ] **Datos del informe que no salen del algoritmo**: pueblos y carreteras afectados, Red Natura 2000, usos del suelo, recurrencia y validación oficial siguen viniendo del `report.json` estático y se calcularon con otro perímetro.
 - [ ] **Proyección de la foto**: `grid.lonlat_to_image_pixel` y `libs/georeferencing/` suponen Web Mercator, pero las exportaciones de Copernicus Browser sin superposiciones están en EPSG:4326. Medido en Madrid-Ávila con 316 puntos: latitud lineal, error mediano 0.6 px y sin curvatura; Web Mercator, 6.0 px con curvatura en U. Hay que volver a la latitud lineal en los dos módulos.
