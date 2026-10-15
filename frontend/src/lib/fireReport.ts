@@ -24,7 +24,7 @@ export type FireZone = {
 
 const MIN_LIST_FRONT_KM = 0.5
 
-export type LegendSymbol = 'fill' | 'line' | 'dashed' | 'fire' | 'marker' | 'ramp'
+export type LegendSymbol = 'fill' | 'line' | 'dashed' | 'fire' | 'marker' | 'ring' | 'ramp'
 
 export type LegendItem = {
   id: string
@@ -46,7 +46,6 @@ export type WeatherSummary = {
 }
 
 const SEVERE_CLASSES: SeverityClass[] = ['moderada_alta', 'alta']
-const MIN_NEARBY_POPULATION = 500
 const LISTED_ROADS = 3
 const COMPASS_SECTOR_DEG = 360 / t.weather.directions.length
 
@@ -94,7 +93,8 @@ export function buildLayerSymbols(colors: MapColors): LayerSymbols {
     burned: { symbol: 'line', colors: [colors.burned] },
     fire: { symbol: 'fire', colors: [colors.fire] },
     roads: { symbol: 'line', colors: [colors.roads] },
-    towns: { symbol: 'marker', colors: [colors.town] },
+    townsInside: { symbol: 'marker', colors: [colors.town] },
+    townsNearby: { symbol: 'ring', colors: [colors.town] },
     reservoirs: { symbol: 'fill', colors: [colors.reservoirs] },
     official: { symbol: 'dashed', colors: [colors.official] },
   }
@@ -132,15 +132,8 @@ function roadsDescription(roads: AffectedRoad[]): string {
   return more > 0 ? t.kpis.roadsMore(names.join(', '), more) : names.join(', ')
 }
 
-function relevantTowns(report: FireReport) {
-  return report.affected.towns
-    .filter((town) => town.inside || (town.population !== null && town.population >= MIN_NEARBY_POPULATION))
-    .sort(
-      (a, b) =>
-        Number(b.inside && b.confirmedOfficial) - Number(a.inside && a.confirmedOfficial) ||
-        Number(b.inside) - Number(a.inside) ||
-        a.distanceKm - b.distanceKm,
-    )
+function townsWhere(report: FireReport, inside: boolean) {
+  return report.affected.towns.filter((town) => town.inside === inside)
 }
 
 export function buildKpis(report: FireReport): Kpi[] {
@@ -233,7 +226,8 @@ export function buildLegend(
     burned: t.legend.hectares(formatNumber(report.burned.areaHa)),
     fire: t.legend.front(formatNumber(report.activeFire.totalLengthKm, 1)),
     roads: t.legend.kilometres(formatNumber(roadsKm(roads), 1)),
-    towns: null,
+    townsInside: t.legend.towns(townsWhere(report, true).length),
+    townsNearby: t.legend.towns(townsWhere(report, false).length),
     reservoirs: null,
     official: report.validation && t.legend.hectares(formatNumber(report.validation.officialAreaHa)),
   }
@@ -241,7 +235,8 @@ export function buildLegend(
     burned: true,
     fire: report.activeFire.fronts.length > 0,
     roads: roads.length > 0,
-    towns: relevantTowns(report).length > 0,
+    townsInside: townsWhere(report, true).length > 0,
+    townsNearby: townsWhere(report, false).length > 0,
     reservoirs: report.affected.reservoirs.length > 0,
     official: report.validation !== null,
   }
@@ -284,7 +279,8 @@ export function buildMapData(report: FireReport, colors: MapColors) {
     fire: collection(report.activeFire.fronts.map((front) => front.geometry)),
     reservoirs: collection(report.affected.reservoirs.map((reservoir) => reservoir.geometry)),
     official: report.validation && collection([report.validation.officialPerimeter]),
-    towns: relevantTowns(report).map((town) => ({ name: town.name, coordinates: town.coordinates, inside: town.inside })),
+    townsInside: townsWhere(report, true).map((town) => ({ name: town.name, coordinates: town.coordinates })),
+    townsNearby: townsWhere(report, false).map((town) => ({ name: town.name, coordinates: town.coordinates })),
   }
 }
 

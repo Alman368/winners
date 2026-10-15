@@ -13,7 +13,7 @@ export const es = {
     title: 'Accesibilidad',
     textSize: 'Tamaño del texto',
     textSizes: { normal: 'Normal', large: 'Grande', extraLarge: 'Muy grande' },
-    colorblind: 'Colores aptos para todo tipo de daltonismo',
+    colorblind: 'Modo daltónico',
   },
   tour: {
     start: 'Cómo funciona',
@@ -115,7 +115,8 @@ export const es = {
       burned: 'Perímetro quemado',
       fire: 'Fuego activo',
       roads: 'Carreteras cortadas',
-      towns: 'Núcleos de población',
+      townsInside: 'Núcleos dentro del incendio',
+      townsNearby: 'Núcleos cerca del incendio',
       reservoirs: 'Embalses',
       official: 'Perímetro final oficial (EFFIS)',
     },
@@ -146,6 +147,7 @@ export const es = {
     hectares: (value: string) => `${value} ha`,
     front: (value: string) => `${value} km de frente`,
     kilometres: (value: string) => `${value} km`,
+    towns: (count: number) => (count === 1 ? '1 núcleo' : `${count} núcleos`),
   },
   weather: {
     title: 'Tiempo durante el incendio',

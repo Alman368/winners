@@ -100,15 +100,18 @@ export function FireReportPage() {
                   linePaint={{ 'line-color': palette.white, 'line-width': 1.5 }}
                 />
               )}
-              {page.visibleLayers.towns &&
-                view.mapData.towns.map((town) => (
-                  <MapMarker key={town.name} longitude={town.coordinates[0]} latitude={town.coordinates[1]}>
-                    <MarkerContent>
-                      <LegendSymbolMark symbol={page.layerSymbols.towns.symbol} colors={page.layerSymbols.towns.colors} />
-                      <MarkerLabel className="rounded bg-card/90 px-1 py-px shadow-sm">{town.name}</MarkerLabel>
-                    </MarkerContent>
-                  </MapMarker>
-                ))}
+              {(['townsInside', 'townsNearby'] as const).map(
+                (layer) =>
+                  page.visibleLayers[layer] &&
+                  view.mapData[layer].map((town) => (
+                    <MapMarker key={`${layer}-${town.name}`} longitude={town.coordinates[0]} latitude={town.coordinates[1]}>
+                      <MarkerContent>
+                        <LegendSymbolMark symbol={page.layerSymbols[layer].symbol} colors={page.layerSymbols[layer].colors} />
+                        <MarkerLabel className="rounded bg-card/90 px-1 py-px shadow-sm">{town.name}</MarkerLabel>
+                      </MarkerContent>
+                    </MapMarker>
+                  )),
+              )}
             </Map>
 
             {page.roadTooltip.tooltip && (

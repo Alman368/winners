@@ -48,4 +48,4 @@ export type FireReport = {
   } | null
 }
 
-export type MapLayerId = 'severity' | 'burned' | 'fire' | 'roads' | 'towns' | 'reservoirs' | 'official'
+export type MapLayerId = 'severity' | 'burned' | 'fire' | 'roads' | 'townsInside' | 'townsNearby' | 'reservoirs' | 'official'

@@ -29,7 +29,7 @@ import { formatShortDate, sceneComposites, sceneImageSource } from '@/lib/scenes
 import type { AnalysisReport, FireContext } from '@/types/analysis'
 import type { Composite, FireReport, LngLat, MapLayerId } from '@/types/fireReport'
 
-export const mapLayerOrder: MapLayerId[] = ['severity', 'burned', 'fire', 'roads', 'towns', 'reservoirs', 'official']
+export const mapLayerOrder: MapLayerId[] = ['severity', 'burned', 'fire', 'roads', 'townsInside', 'townsNearby', 'reservoirs', 'official']
 
 type ImportedFire = FireOption & {
   report: FireReport
@@ -45,7 +45,8 @@ const initialLayers: Record<MapLayerId, boolean> = {
   burned: true,
   fire: true,
   roads: true,
-  towns: true,
+  townsInside: true,
+  townsNearby: true,
   reservoirs: true,
   official: false,
 }

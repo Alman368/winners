@@ -34,6 +34,15 @@ export function LegendSymbolMark({ symbol, colors }: LegendSymbolMarkProps) {
       />
     )
   }
+  if (symbol === 'ring') {
+    return (
+      <span
+        aria-hidden
+        className="block size-3 shrink-0 rounded-full border-[2.5px] bg-white shadow-sm ring-1 ring-white"
+        style={{ borderColor: colors[0] }}
+      />
+    )
+  }
   if (symbol === 'fire') {
     return (
       <span
