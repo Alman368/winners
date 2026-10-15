@@ -1,5 +1,3 @@
-import { IconLoader2 } from '@tabler/icons-react'
-
 import compasWordmark from '@/assets/compas-wordmark.svg'
 
 import { ChartCard3 } from '@/components/chart-card3'
@@ -8,7 +6,6 @@ import { FireZoneList } from '@/components/FireZoneList'
 import { LegendSymbolMark } from '@/components/LegendSymbolMark'
 import { MapLayersPopover } from '@/components/MapLayersPopover'
 import { MapLegend } from '@/components/MapLegend'
-import { SceneDayControls } from '@/components/SceneDayControls'
 import { SceneFacts } from '@/components/SceneFacts'
 import { StatsCard1 } from '@/components/stats-card1'
 import { Badge } from '@/components/ui/badge'
@@ -19,7 +16,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { mapLayerOrder, NO_COMPARE, useFireReportPage } from '@/hooks/useFireReportPage'
+import { mapLayerOrder, useFireReportPage } from '@/hooks/useFireReportPage'
 import { t } from '@/i18n'
 import { formatNumber, layerSymbols, mapColors } from '@/lib/fireReport'
 import { palette } from '@/lib/palette'
@@ -109,43 +106,7 @@ export function FireReportPage() {
               <div className="flex flex-col items-start gap-2">
                 <div className="pointer-events-auto flex flex-wrap items-center gap-1 rounded-xl bg-card/95 p-1 shadow-sm ring-1 ring-foreground/10 backdrop-blur">
                   <CompositeToggle composites={page.composites} value={page.composite} onChange={page.setComposite} />
-                  {page.scenes.day && (
-                    <>
-                      <span aria-hidden className="mx-1 h-5 w-px bg-border" />
-                      <SceneDayControls
-                        dayOptions={page.scenes.dayOptions}
-                        compareOptions={page.scenes.compareOptions}
-                        day={page.scenes.day}
-                        onDayChange={page.scenes.selectDay}
-                        compareDay={page.scenes.compareDay}
-                        noCompareValue={NO_COMPARE}
-                        onCompareDayChange={page.scenes.selectCompareDay}
-                        compareOpacity={page.scenes.compareOpacity}
-                        onCompareOpacityChange={page.scenes.setCompareOpacity}
-                        isCompareActive={page.scenes.isCompareActive}
-                        isLocked={page.scenes.isLocked}
-                        isLoading={page.scenes.isLoading}
-                        isError={page.scenes.isError}
-                      />
-                    </>
-                  )}
-                  {page.scenes.isImageLoading && (
-                    <span role="status" className="flex items-center gap-1.5 px-2 text-xs text-muted-foreground">
-                      <IconLoader2 aria-hidden className="size-3.5 animate-spin" />
-                      {t.scenes.imageLoading}
-                    </span>
-                  )}
                 </div>
-                {page.scenes.isLocked && (
-                  <p className="pointer-events-auto max-w-sm rounded-lg bg-card/95 px-3 py-2 text-xs text-muted-foreground shadow-sm ring-1 ring-foreground/10">
-                    {t.scenes.lockedHint}
-                  </p>
-                )}
-                {page.scenes.isImageError && (
-                  <p role="alert" className="pointer-events-auto rounded-lg bg-card/95 px-3 py-2 text-xs text-destructive shadow-sm ring-1 ring-foreground/10">
-                    {t.scenes.imageError}
-                  </p>
-                )}
               </div>
               <div className="pointer-events-auto">
                 <MapLayersPopover
@@ -191,12 +152,6 @@ export function FireReportPage() {
         <ScrollArea className="min-h-0 flex-1">
           <div className="flex flex-col gap-3 p-4">
             {page.isError && <p role="alert" className="text-sm text-destructive">{t.app.loadError}</p>}
-
-            {page.isAnalysisRunning && (
-              <p role="status" className="text-sm text-muted-foreground">
-                {t.app.analysisRunning}
-              </p>
-            )}
 
             {page.isLoading && (
               <>
