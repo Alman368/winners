@@ -79,6 +79,9 @@ class Config:
     fire_cluster_distance_m: float = 100.0
     """Hot pixels closer than this belong to the same fire."""
 
+    fire_group_distance_m: float = 1000.0
+    """Nearby detected fronts form one zone; their geometry and length retain only the actual hot pixels."""
+
     fire_context_distance_m: float = 500.0
     """A fire is kept only if it is this close to the burned area. Generous because smoke can hide burned land between scar and front."""
 

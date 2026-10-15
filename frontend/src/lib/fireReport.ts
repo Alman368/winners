@@ -1,9 +1,8 @@
 import type { FeatureCollection, Geometry, Position } from 'geojson'
 
-import type { ChartCard3Datum } from '@/components/chart-card3'
 import { t } from '@/i18n'
 import { palette } from '@/lib/palette'
-import type { AreaGeometry, FireReport, LandCover, LngLat, MapLayerId, SeverityClass } from '@/types/fireReport'
+import type { AreaGeometry, FireReport, LngLat, MapLayerId, SeverityClass } from '@/types/fireReport'
 
 export type Kpi = {
   id: string
@@ -25,14 +24,6 @@ export type AffectedRow = {
   target: MapTarget | null
 }
 
-export type FireZone = {
-  id: number
-  rank: number
-  length: string
-  detail: string
-  target: MapTarget
-}
-
 export type LegendSymbol = 'fill' | 'line' | 'dashed' | 'fire' | 'marker' | 'ramp'
 
 export type LegendItem = {
@@ -45,7 +36,6 @@ export type LegendItem = {
 }
 
 const SEVERE_CLASSES: SeverityClass[] = ['moderada_alta', 'alta']
-const MIN_LAND_COVER_PCT = 1
 const MIN_NEARBY_POPULATION = 500
 const EDGE_KM = 0.1
 
@@ -75,10 +65,6 @@ export const layerSymbols: Record<MapLayerId, { symbol: LegendSymbol; colors: st
 
 export function formatNumber(value: number, digits = 0): string {
   return value.toLocaleString('es-ES', { maximumFractionDigits: digits, minimumFractionDigits: digits })
-}
-
-export function formatDate(isoDate: string): string {
-  return new Date(isoDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
 }
 
 function burnedClasses(report: FireReport) {
@@ -126,10 +112,6 @@ function geometryBounds(geometry: AreaGeometry): [LngLat, LngLat] {
   ]
 }
 
-function formatCoordinates([lng, lat]: LngLat): string {
-  return t.fireZones.coordinates(formatNumber(Math.abs(lat), 3), lat >= 0 ? 'N' : 'S', formatNumber(Math.abs(lng), 3), lng >= 0 ? 'E' : 'O')
-}
-
 export function buildKpis(report: FireReport): Kpi[] {
   return [
     {
@@ -161,18 +143,6 @@ export function buildKpis(report: FireReport): Kpi[] {
       description: t.kpis.affectedDescription(formatNumber(roadsKm(report), 1)),
     },
   ]
-}
-
-export function buildFireZones(report: FireReport): FireZone[] {
-  return [...report.activeFire.fronts]
-    .sort((a, b) => b.lengthKm - a.lengthKm)
-    .map((front, index) => ({
-      id: front.id,
-      rank: index + 1,
-      length: t.fireZones.length(formatNumber(front.lengthKm, 1)),
-      detail: t.fireZones.detail(formatNumber(front.areaHa, 1), formatCoordinates(front.centroid)),
-      target: { kind: 'point', center: front.centroid },
-    }))
 }
 
 export function buildLegend(report: FireReport, visibleLayers: Record<MapLayerId, boolean>) {
@@ -213,19 +183,6 @@ export function buildLegend(report: FireReport, visibleLayers: Record<MapLayerId
       share: null,
     }))
   return { severity, layers }
-}
-
-export function buildLandCoverChart(report: FireReport): { data: ChartCard3Datum[]; footer: string[] } {
-  return {
-    data: (Object.entries(report.environment.landCoverPct) as [LandCover, number][])
-      .filter(([, pct]) => pct >= MIN_LAND_COVER_PCT)
-      .sort(([, a], [, b]) => b - a)
-      .map(([type, pct]) => ({ label: t.environment.landCover[type], value: Math.round(pct), fill: 'var(--chart-vegetation)' })),
-    footer: [
-      t.environment.natura(formatNumber(report.environment.natura2000Pct)),
-      t.environment.recurrence(formatNumber(report.environment.recurrencePct)),
-    ],
-  }
 }
 
 export function buildAffectedRows(report: FireReport): AffectedRow[] {

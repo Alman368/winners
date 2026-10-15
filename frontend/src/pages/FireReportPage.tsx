@@ -1,12 +1,9 @@
 import compasWordmark from '@/assets/compas-wordmark.svg'
 
-import { ChartCard3 } from '@/components/chart-card3'
 import { CompositeToggle } from '@/components/CompositeToggle'
-import { FireZoneList } from '@/components/FireZoneList'
 import { LegendSymbolMark } from '@/components/LegendSymbolMark'
 import { MapLayersPopover } from '@/components/MapLayersPopover'
 import { MapLegend } from '@/components/MapLegend'
-import { SceneFacts } from '@/components/SceneFacts'
 import { StatsCard1 } from '@/components/stats-card1'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -155,7 +152,6 @@ export function FireReportPage() {
 
             {page.isLoading && (
               <>
-                <Skeleton className="h-20 rounded-xl" />
                 <div className="grid grid-cols-2 gap-3">
                   {[0, 1, 2, 3].map((index) => (
                     <Skeleton key={index} className="h-28 rounded-xl" />
@@ -167,13 +163,6 @@ export function FireReportPage() {
 
             {view && (
               <>
-                <SceneFacts
-                  acquisition={view.facts.acquisition}
-                  fireStart={view.facts.fireStart}
-                  daysSinceStart={view.facts.daysSinceStart}
-                  preFire={view.facts.preFire}
-                />
-
                 <section aria-label={t.kpis.title} className="grid grid-cols-2 gap-3">
                   {view.kpis.map((kpi) => (
                     <StatsCard1
@@ -185,22 +174,6 @@ export function FireReportPage() {
                     />
                   ))}
                 </section>
-
-                <FireZoneList
-                  zones={page.fireZones.shown}
-                  hiddenCount={page.fireZones.hiddenCount}
-                  isExpanded={page.fireZones.isExpanded}
-                  onToggleExpanded={page.fireZones.toggleExpanded}
-                  onFocusZone={(zone) => page.focusTarget(zone.target)}
-                />
-
-                <ChartCard3
-                  title={t.environment.title}
-                  description={t.environment.description}
-                  valueLabel={t.environment.valueLabel}
-                  data={view.landCoverChart.data}
-                  footer={view.landCoverChart.footer}
-                />
 
                 <Card>
                   <CardHeader>
@@ -285,6 +258,9 @@ export function FireReportPage() {
                         <p className="text-xs text-muted-foreground">{t.validation.officialAreaNote}</p>
                       </div>
                     </div>
+                    <p className="text-sm">
+                      {t.validation.protectedArea(formatNumber(view.report.environment.natura2000Pct))}
+                    </p>
                     <div>
                       <p className="text-xs text-muted-foreground">{t.validation.sources}</p>
                       <ul className="text-sm">
