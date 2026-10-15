@@ -19,12 +19,12 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import {
-  ArrowsOutIcon as Maximize,
-  CircleNotchIcon as Loader2,
-  CrosshairIcon as Locate,
-  MinusIcon as Minus,
-  PlusIcon as Plus,
-} from "@phosphor-icons/react";
+  IconArrowsMaximize as Maximize,
+  IconLoader2 as Loader2,
+  IconCurrentLocation as Locate,
+  IconMinus as Minus,
+  IconPlus as Plus,
+} from "@tabler/icons-react";
 
 import { cn } from "@/lib/utils";
 
@@ -1162,4 +1162,71 @@ function MapGeoJSON<
 }
 
 /** A single arc to render inside <MapArc data={...}>. */
-export { Map, MapMarker, MarkerContent, MarkerLabel, MapControls, MapGeoJSON };
+type MapImageCoordinates = [
+  [number, number],
+  [number, number],
+  [number, number],
+  [number, number],
+];
+
+type MapImageProps = {
+  /** Unique id for the image source and its raster layer */
+  id: string;
+  /** Image URL */
+  url: string;
+  /** Corners as [lng, lat]: top-left, top-right, bottom-right, bottom-left */
+  coordinates: MapImageCoordinates;
+  /** Raster opacity between 0 and 1 (default: 1) */
+  opacity?: number;
+};
+
+/** Georeferenced image drawn under the basemap labels; url, corners and opacity update in place. */
+function MapImage({ id, url, coordinates, opacity = 1 }: MapImageProps) {
+  const { map, isLoaded } = useMap();
+  const sourceId = `image-source-${id}`;
+  const layerId = `image-layer-${id}`;
+  const stableCoordinates = useStableValue(coordinates);
+
+  useEffect(() => {
+    if (!isLoaded || !map) return;
+
+    const firstSymbolId = map
+      .getStyle()
+      .layers.find((layer) => layer.type === "symbol")?.id;
+    map.addSource(sourceId, { type: "image", url, coordinates });
+    map.addLayer(
+      {
+        id: layerId,
+        type: "raster",
+        source: sourceId,
+        paint: { "raster-opacity": opacity },
+      },
+      firstSymbolId,
+    );
+
+    return () => {
+      try {
+        if (map.getLayer(layerId)) map.removeLayer(layerId);
+        if (map.getSource(sourceId)) map.removeSource(sourceId);
+      } catch {
+        // style may be mid-reload
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, map]);
+
+  useEffect(() => {
+    if (!isLoaded || !map) return;
+    const source = map.getSource(sourceId) as MapLibreGL.ImageSource | undefined;
+    source?.updateImage({ url, coordinates: stableCoordinates });
+  }, [isLoaded, map, sourceId, url, stableCoordinates]);
+
+  useEffect(() => {
+    if (!isLoaded || !map || !map.getLayer(layerId)) return;
+    map.setPaintProperty(layerId, "raster-opacity", opacity);
+  }, [isLoaded, map, layerId, opacity]);
+
+  return null;
+}
+
+export { Map, MapMarker, MarkerContent, MarkerLabel, MapControls, MapGeoJSON, MapImage };

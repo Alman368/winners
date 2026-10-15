@@ -18,10 +18,8 @@
   --palette-red-3: color(display-p3 0.985 0.925 0.925);
   --palette-red-9: color(display-p3 0.83 0.329 0.324);
   --palette-red-11: color(display-p3 0.744 0.234 0.222);
-  --palette-pink-11: color(display-p3 0.698 0.219 0.528);
   --palette-purple-3: color(display-p3 0.963 0.931 0.989);
   --palette-purple-11: color(display-p3 0.473 0.281 0.687);
-  --palette-sky-11: color(display-p3 0.193 0.448 0.605);
   --palette-green-3: color(display-p3 0.913 0.964 0.925);
   --palette-green-9: color(display-p3 0.332 0.634 0.442);
   --palette-green-11: color(display-p3 0.19 0.5 0.32);
@@ -48,11 +46,8 @@
   --ring: var(--palette-carbon);
   --radius: 0.625rem;
 
-  --chart-1: var(--palette-amber-11);
-  --chart-2: var(--palette-red-9);
-  --chart-3: var(--palette-pink-11);
-  --chart-4: var(--palette-purple-11);
-  --chart-5: var(--palette-green-9);
+  --chart-severity: var(--palette-red-9);
+  --chart-vegetation: var(--palette-green-9);
 }
 
 @theme inline {
@@ -74,11 +69,6 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
   --color-tag-red-background: var(--palette-red-3);
   --color-tag-red-foreground: var(--palette-red-11);
   --color-tag-amber-background: var(--palette-amber-3);

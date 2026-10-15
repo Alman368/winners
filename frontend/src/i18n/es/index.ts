@@ -1,10 +1,17 @@
 export const es = {
   app: {
-    title: 'Informe de incendio',
+    logo: 'Logo',
+    panel: 'Panel del incendio',
     fireSelector: 'Incendio',
     loadError: 'No se ha podido cargar el informe del incendio.',
-    sceneMeta: (date: string, passes: string) => `Imagen Sentinel-2 del ${date} · ${passes}`,
-    locationVerified: (points: number) => `Ubicación verificada (${points} puntos coincidentes)`,
+  },
+  scenes: {
+    day: 'Fecha de la imagen',
+    compare: 'Comparar con',
+    noCompare: 'Sin comparar',
+    opacity: 'Opacidad de la comparación',
+    dayOption: (date: string, cloud: string) => `${date} · ${cloud} % nubes`,
+    passesError: 'No se han podido cargar las pasadas de Sentinel-2.',
   },
   summary: {
     burned: (date: string, name: string, ha: string) => `A ${date}, el incendio de ${name} había quemado ${ha} ha.`,

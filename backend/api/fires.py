@@ -6,9 +6,8 @@ from fastapi import APIRouter, Depends
 from fastapi.concurrency import run_in_threadpool
 
 from libs import effis, firms
-from libs.copernicus.auth import fetch_token
+from libs.copernicus.auth import copernicus_token
 from libs.copernicus.catalog import Acquisition, search_acquisitions
-from libs.copernicus.credentials import copernicus_credentials
 from libs.http_client import get_http_client
 from models import BurntArea, BurntAreaDetail, Hotspot
 
@@ -35,8 +34,7 @@ async def list_fire_scenes(
 ) -> list[Acquisition]:
     fire = await effis.get_burnt_area(fire_id)
     fire_day = fire.fire_date.date()
-    credentials = copernicus_credentials()
-    token = await run_in_threadpool(fetch_token, client, credentials.client_id, credentials.client_secret)
+    token = await run_in_threadpool(copernicus_token, client)
     acquisitions = await run_in_threadpool(
         search_acquisitions,
         client,
