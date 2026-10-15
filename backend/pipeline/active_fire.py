@@ -3,9 +3,15 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 from scipy import ndimage
+from shapely import STRtree
+from shapely.affinity import affine_transform
+from shapely.geometry import mapping, shape
+from shapely.ops import unary_union
 
 from pipeline.burned_area import SQUARE
 from pipeline.config import CONFIG
+from pipeline.grid import Grid
+from pipeline.models import ActiveFire, Point
 
 
 @dataclass(frozen=True)
@@ -71,3 +77,62 @@ def detect_fires(
         ys, xs = np.nonzero(member)
         fires.append(FireCluster(xs + cluster[1].start, ys + cluster[0].start))
     return fires
+
+
+def group_fronts(fires: list[ActiveFire], grid: Grid) -> list[ActiveFire]:
+    """Groups nearby fronts while preserving their detected area, length and geometry."""
+    if not fires:
+        return []
+    geometries = [shape(fire.geometry) for fire in fires]
+    transform = ~grid.transform
+    pixels = [
+        affine_transform(geometry, [transform.a, transform.b, transform.d, transform.e, transform.c, transform.f])
+        for geometry in geometries
+    ]
+    parents = list(range(len(fires)))
+
+    def root(index: int) -> int:
+        while parents[index] != index:
+            parents[index] = parents[parents[index]]
+            index = parents[index]
+        return index
+
+    neighbours = STRtree(pixels).query(
+        pixels, predicate="dwithin", distance=CONFIG.fire_group_distance_m / CONFIG.resolution_m
+    )
+    for first, second in neighbours.T:
+        parents[root(int(first))] = root(int(second))
+    groups: dict[int, list[int]] = {}
+    for index in range(len(fires)):
+        groups.setdefault(root(index), []).append(index)
+
+    zones: list[ActiveFire] = []
+    for zone_id, indices in enumerate(groups.values(), start=1):
+        members = [fires[index] for index in indices]
+        count = sum(fire.pixels for fire in members)
+        zones.append(
+            ActiveFire(
+                id=zone_id,
+                centroid=Point(
+                    lonlat=(
+                        sum(fire.centroid.lonlat[0] * fire.pixels for fire in members) / count,
+                        sum(fire.centroid.lonlat[1] * fire.pixels for fire in members) / count,
+                    ),
+                    pixel=(
+                        sum(fire.centroid.pixel[0] * fire.pixels for fire in members) / count,
+                        sum(fire.centroid.pixel[1] * fire.pixels for fire in members) / count,
+                    ),
+                ),
+                bbox_pixel=(
+                    min(fire.bbox_pixel[0] for fire in members),
+                    min(fire.bbox_pixel[1] for fire in members),
+                    max(fire.bbox_pixel[2] for fire in members),
+                    max(fire.bbox_pixel[3] for fire in members),
+                ),
+                pixels=count,
+                area_ha=round(sum(fire.area_ha for fire in members), 2),
+                front_length_km=round(sum(fire.front_length_km for fire in members), 2),
+                geometry=mapping(unary_union([geometries[index] for index in indices])),
+            )
+        )
+    return zones

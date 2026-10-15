@@ -1,5 +1,6 @@
 import compasWordmark from '@/assets/compas-wordmark.svg'
 
+import { FireZoneList } from '@/components/FireZoneList'
 import { CompositeToggle } from '@/components/CompositeToggle'
 import { LegendSymbolMark } from '@/components/LegendSymbolMark'
 import { MapLayersPopover } from '@/components/MapLayersPopover'
@@ -15,7 +16,7 @@ import { layerSymbols, mapColors } from '@/lib/fireReport'
 import { palette } from '@/lib/palette'
 
 export function FireReportPage() {
-  const page = useFireReportPage()
+  const { setMap, ...page } = useFireReportPage()
   const { view } = page
 
   return (
@@ -25,6 +26,7 @@ export function FireReportPage() {
         {view && page.basemap && (
           <>
             <Map
+              ref={setMap}
               key={view.report.id}
               theme="light"
               styles={{ light: page.basemap }}
@@ -154,17 +156,26 @@ export function FireReportPage() {
             )}
 
             {view && (
-              <section aria-label={t.kpis.title} className="grid grid-cols-2 gap-3">
-                {view.kpis.map((kpi) => (
-                  <StatsCard1
-                    key={kpi.id}
-                    title={kpi.title}
-                    value={kpi.value}
-                    unit={kpi.unit}
-                    description={kpi.description}
-                  />
-                ))}
-              </section>
+              <>
+                <section aria-label={t.kpis.title} className="grid grid-cols-2 gap-3">
+                  {view.kpis.map((kpi) => (
+                    <StatsCard1
+                      key={kpi.id}
+                      title={kpi.title}
+                      value={kpi.value}
+                      unit={kpi.unit}
+                      description={kpi.description}
+                    />
+                  ))}
+                </section>
+                <FireZoneList
+                  zones={page.fireZones.shown}
+                  hiddenCount={page.fireZones.hiddenCount}
+                  isExpanded={page.fireZones.isExpanded}
+                  onToggleExpanded={page.fireZones.toggleExpanded}
+                  onFocusZone={(zone) => page.focusZone(zone.bounds)}
+                />
+              </>
             )}
           </div>
         </ScrollArea>

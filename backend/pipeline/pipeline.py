@@ -9,7 +9,7 @@ from scipy import ndimage
 from shapely.geometry import LinearRing, MultiPolygon, mapping
 
 from pipeline import copernicus
-from pipeline.active_fire import FireCluster, detect_fires
+from pipeline.active_fire import FireCluster, detect_fires, group_fronts
 from pipeline.bands import Bands, PreFireComposite
 from pipeline.burned_area import detect_burned, severity_masks
 from pipeline.config import CONFIG
@@ -134,7 +134,7 @@ def _detect(scene: SceneInput, grid: Grid, post: Bands, pre: PreFireComposite) -
         under_smoke_ha=round(float(hidden_burned.sum() * grid.pixel_area_ha), 1),
         severity=_severity(change, burned_mask, grid),
     )
-    fires = [_active_fire(index, cluster, grid, scene) for index, cluster in enumerate(clusters, start=1)]
+    fires = group_fronts([_active_fire(index, cluster, grid, scene) for index, cluster in enumerate(clusters, start=1)], grid)
     smoke = SmokeArea(
         area_ha=round(float(smoke_mask.sum() * grid.pixel_area_ha), 1),
         geometry=mapping(

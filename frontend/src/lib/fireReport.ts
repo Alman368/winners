@@ -2,7 +2,7 @@ import type { FeatureCollection, Geometry } from 'geojson'
 
 import { t } from '@/i18n'
 import { palette } from '@/lib/palette'
-import type { FireReport, MapLayerId, SeverityClass } from '@/types/fireReport'
+import type { FireReport, LngLat, MapLayerId, SeverityClass } from '@/types/fireReport'
 
 export type Kpi = {
   id: string
@@ -11,6 +11,16 @@ export type Kpi = {
   unit: string
   description: string
 }
+
+export type FireZone = {
+  id: number
+  rank: number
+  length: string
+  detail: string
+  bounds: [LngLat, LngLat]
+}
+
+const MIN_LIST_FRONT_KM = 0.5
 
 export type LegendSymbol = 'fill' | 'line' | 'dashed' | 'fire' | 'marker' | 'ramp'
 
@@ -119,6 +129,37 @@ export function buildKpis(report: FireReport): Kpi[] {
       description: t.kpis.affectedDescription(formatNumber(roadsKm(report), 1)),
     },
   ]
+}
+
+export function buildFireZones(report: FireReport): FireZone[] {
+  return report.activeFire.fronts
+    .filter((front) => front.lengthKm >= MIN_LIST_FRONT_KM)
+    .sort((first, second) => second.lengthKm - first.lengthKm)
+    .map((front, index) => {
+      const polygons = front.geometry.type === 'Polygon' ? [front.geometry.coordinates] : front.geometry.coordinates
+      const first = polygons[0][0][0]
+      let west = first[0]
+      let east = first[0]
+      let south = first[1]
+      let north = first[1]
+      for (const polygon of polygons) {
+        for (const ring of polygon) {
+          for (const [lng, lat] of ring) {
+            west = Math.min(west, lng)
+            east = Math.max(east, lng)
+            south = Math.min(south, lat)
+            north = Math.max(north, lat)
+          }
+        }
+      }
+      return {
+        id: front.id,
+        rank: index + 1,
+        length: t.fireZones.length(formatNumber(front.lengthKm, 1)),
+        detail: t.fireZones.detail(formatNumber(front.areaHa, 1)),
+        bounds: [[west, south], [east, north]],
+      }
+    })
 }
 
 export function buildLegend(report: FireReport, visibleLayers: Record<MapLayerId, boolean>) {

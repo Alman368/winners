@@ -1,3 +1,4 @@
+import type { Map as MapLibreMap } from 'maplibre-gl'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 
@@ -7,14 +8,19 @@ import { fetchFireReport } from '@/api/fireReports'
 import { applyAnalysis } from '@/lib/analysis'
 import { demoFires } from '@/lib/demoFires'
 import {
+  buildFireZones,
   buildKpis,
   buildLegend,
   buildMapData,
 } from '@/lib/fireReport'
 import { buildSceneImage } from '@/lib/scenes'
-import type { Composite, MapLayerId } from '@/types/fireReport'
+import type { Composite, LngLat, MapLayerId } from '@/types/fireReport'
 
 export const mapLayerOrder: MapLayerId[] = ['severity', 'burned', 'fire', 'towns', 'reservoirs', 'official']
+
+const VISIBLE_FIRE_ZONES = 5
+const FOCUS_PADDING = 64
+const FOCUS_ZOOM = 13
 
 const initialLayers: Record<MapLayerId, boolean> = {
   severity: true,
@@ -27,9 +33,11 @@ const initialLayers: Record<MapLayerId, boolean> = {
 
 
 export function useFireReportPage() {
+  const [map, setMap] = useState<MapLibreMap | null>(null)
   const [fireId, setFireId] = useState(demoFires[0].id)
   const [composite, setComposite] = useState<Composite>('swir')
   const [visibleLayers, setVisibleLayers] = useState(initialLayers)
+  const [areFireZonesExpanded, setAreFireZonesExpanded] = useState(false)
 
   const reportQuery = useQuery({
     queryKey: ['fire-report', fireId],
@@ -61,6 +69,7 @@ export function useFireReportPage() {
     return {
       report,
       kpis: buildKpis(report),
+      fireZones: buildFireZones(report),
       mapData: buildMapData(report),
     }
   }, [report])
@@ -70,9 +79,20 @@ export function useFireReportPage() {
 
   const legend = useMemo(() => (report ? buildLegend(report, visibleLayers) : null), [report, visibleLayers])
 
+  const fireZones = view ? view.fireZones : []
+  const shownFireZones = areFireZonesExpanded ? fireZones : fireZones.slice(0, VISIBLE_FIRE_ZONES)
+
   const selectFire = (id: string) => {
     setFireId(id)
     setComposite('swir')
+    setAreFireZonesExpanded(false)
+  }
+
+  const focusZone = (bounds: [LngLat, LngLat]) => {
+    if (!map) {
+      return
+    }
+    map.fitBounds(bounds, { padding: FOCUS_PADDING, maxZoom: FOCUS_ZOOM })
   }
 
   const setLayerVisible = (layer: MapLayerId, visible: boolean) => {
@@ -89,6 +109,14 @@ export function useFireReportPage() {
     visibleLayers,
     setLayerVisible,
     view,
+    setMap,
+    focusZone,
+    fireZones: {
+      shown: shownFireZones,
+      hiddenCount: fireZones.length - shownFireZones.length,
+      isExpanded: areFireZonesExpanded,
+      toggleExpanded: () => setAreFireZonesExpanded((current) => !current),
+    },
     basemap: basemapQuery.data,
     sceneImages,
     legend,

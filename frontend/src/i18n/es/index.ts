@@ -45,6 +45,16 @@ export const es = {
       alta: 'Alta',
     },
   },
+  fireZones: {
+    title: 'Dónde había fuego activo',
+    description: 'Zonas agrupadas con al menos 500 m de frente. Pulsa para verlas en el mapa.',
+    empty: 'No hay zonas con al menos 500 m de frente activo en esta imagen.',
+    length: (km: string) => `${km} km de frente`,
+    detail: (ha: string) => `${ha} ha con fuego detectado`,
+    showMore: (count: number) => `Ver ${count} zonas más`,
+    showLess: 'Ver menos',
+    focus: (rank: number) => `Centrar el mapa en la zona ${rank}`,
+  },
   legend: {
     title: 'Leyenda',
     severityTitle: 'Severidad',
