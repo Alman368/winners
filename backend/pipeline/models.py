@@ -33,8 +33,11 @@ class SceneInfo(BaseModel):
     image_size: tuple[int, int]
 
 
+SeverityName = Literal["low", "moderate_low", "moderate_high", "high"]
+
+
 class SeverityClass(BaseModel):
-    name: Literal["low", "moderate_low", "moderate_high", "high"]
+    name: SeverityName
     area_ha: float
     geometry: dict[str, Any]
     """GeoJSON MultiPolygon in lon/lat."""

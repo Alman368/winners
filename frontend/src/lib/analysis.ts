@@ -1,4 +1,4 @@
-import type { AnalysisInProgress, AnalysisSeverityName, FireAnalysis } from '@/types/analysis'
+import type { AnalysisInProgress, AnalysisSeverityName, BurnedAreaFeature, FireAnalysis } from '@/types/analysis'
 import type { FireReport, SeverityClass } from '@/types/fireReport'
 
 const severityClassByName: Record<AnalysisSeverityName, SeverityClass> = {
@@ -13,7 +13,9 @@ export function isAnalysisInProgress(response: FireAnalysis | AnalysisInProgress
 }
 
 export function applyAnalysis(report: FireReport, analysis: FireAnalysis): FireReport {
-  const burnedFeature = analysis.geojson.features.find((feature) => feature.properties.kind === 'burned_area')!
+  const burnedFeature = analysis.geojson.features.find(
+    (feature): feature is BurnedAreaFeature => feature.properties.kind === 'burned_area',
+  )!
   return {
     ...report,
     burned: {
