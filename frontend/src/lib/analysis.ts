@@ -1,4 +1,4 @@
-import type { AnalysisSeverityName, FireAnalysis } from '@/types/analysis'
+import type { AnalysisInProgress, AnalysisSeverityName, FireAnalysis } from '@/types/analysis'
 import type { FireReport, SeverityClass } from '@/types/fireReport'
 
 const severityClassByName: Record<AnalysisSeverityName, SeverityClass> = {
@@ -6,6 +6,10 @@ const severityClassByName: Record<AnalysisSeverityName, SeverityClass> = {
   moderate_low: 'moderada_baja',
   moderate_high: 'moderada_alta',
   high: 'alta',
+}
+
+export function isAnalysisInProgress(response: FireAnalysis | AnalysisInProgress): response is AnalysisInProgress {
+  return 'status' in response
 }
 
 export function applyAnalysis(report: FireReport, analysis: FireAnalysis): FireReport {

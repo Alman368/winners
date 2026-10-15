@@ -1,6 +1,6 @@
 import { baseFetch } from '@/api/client'
-import type { FireAnalysis } from '@/types/analysis'
+import type { AnalysisInProgress, FireAnalysis } from '@/types/analysis'
 
-export function fetchSceneAnalysis(sceneId: string): Promise<FireAnalysis> {
-  return baseFetch<FireAnalysis>(`/api/analysis/scenes/${sceneId}`)
+export function fetchSceneAnalysis(sceneId: string): Promise<FireAnalysis | AnalysisInProgress> {
+  return baseFetch<FireAnalysis | AnalysisInProgress>(`/api/analysis/scenes/${sceneId}`)
 }

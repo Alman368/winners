@@ -1,15 +1,16 @@
+import asyncio
 from datetime import timezone
 from pathlib import Path
 from typing import Annotated
 
 import httpx
-from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, Form, HTTPException, Response, UploadFile
 
 from api.georeferencing import georeference_image
 from libs import cache
 from libs.effis import FireStartNotFoundError, find_fire_start
 from libs.http_client import get_http_client
-from models import AnalysisResult
+from models import AnalysisInProgress, AnalysisResult
 from pipeline.config import CONFIG
 from pipeline.models import FireAnalysis, SceneInput
 from pipeline.pipeline import analyze
@@ -18,6 +19,8 @@ router: APIRouter = APIRouter(prefix="/analysis", tags=["analysis"])
 
 EFFIS_TIMEOUT_S: int = 180
 DEMO_SCENES_DIR: Path = Path(__file__).resolve().parents[1] / "pipeline" / "scenes"
+
+_scene_analyses: dict[str, asyncio.Task[FireAnalysis]] = {}
 
 
 async def _analyze_image(client: httpx.Client, content: bytes, filename: str, place: str) -> AnalysisResult:
@@ -61,19 +64,29 @@ async def analyze_upload(
     )
 
 
-@router.get("/scenes/{scene_id}")
-async def analyze_demo_scene(scene_id: str) -> FireAnalysis:
-    """Runs the fire detection pipeline on one of the example scenes in `pipeline/scenes/`.
+@router.get("/scenes/{scene_id}", responses={202: {"model": AnalysisInProgress}})
+async def analyze_demo_scene(scene_id: str, response: Response) -> FireAnalysis | AnalysisInProgress:
+    """Analyses one of the example scenes in `pipeline/scenes/`, in the background.
 
-    The result is cached per scene: the first run downloads Sentinel-2 data and can take several minutes.
+    The first run downloads Sentinel-2 data and takes minutes, longer than a request should stay open. It answers
+    202 while the analysis runs, and the result once it is ready, from then on from `data/cache/analysis-scenes/`.
+    The analysis is a task of its own, so a client that disconnects does not cancel it.
     """
     scene_file = DEMO_SCENES_DIR / f"{scene_id}.json"
     if not scene_file.exists():
         raise HTTPException(status_code=404, detail="scene_not_found")
-    scene = SceneInput.model_validate_json(scene_file.read_text())
-    return await cache.cached(
-        cache.CACHE_DIR / "analysis-scenes",
-        cache.cache_key(scene_file.read_bytes()),
-        FireAnalysis,
-        lambda: analyze(scene),
-    )
+    key = cache.cache_key(scene_file.read_bytes())
+    task = _scene_analyses.get(key)
+    if task is None:
+        stored = cache.load(cache.CACHE_DIR / "analysis-scenes", key, FireAnalysis)
+        if stored is not None:
+            return stored
+        scene = SceneInput.model_validate_json(scene_file.read_text())
+        _scene_analyses[key] = asyncio.create_task(
+            cache.cached(cache.CACHE_DIR / "analysis-scenes", key, FireAnalysis, lambda: analyze(scene))
+        )
+    elif task.done():
+        del _scene_analyses[key]
+        return task.result()
+    response.status_code = 202
+    return AnalysisInProgress()

@@ -195,6 +195,12 @@ export function FireReportPage() {
           <div className="flex flex-col gap-3 p-4">
             {page.isError && <p role="alert" className="text-sm text-destructive">{t.app.loadError}</p>}
 
+            {page.isAnalysisRunning && (
+              <p role="status" className="text-sm text-muted-foreground">
+                {t.app.analysisRunning}
+              </p>
+            )}
+
             {page.isLoading && (
               <>
                 <Skeleton className="h-20 rounded-xl" />

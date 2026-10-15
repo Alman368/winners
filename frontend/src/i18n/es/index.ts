@@ -4,6 +4,7 @@ export const es = {
     panel: 'Panel del incendio',
     fireSelector: 'Incendio',
     loadError: 'No se ha podido cargar el informe del incendio.',
+    analysisRunning: 'Analizando las imágenes de Copernicus. La primera vez puede tardar unos minutos.',
   },
   scenes: {
     day: 'Fecha de la imagen',

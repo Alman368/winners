@@ -27,11 +27,16 @@ def cache_key(*parts: bytes | str) -> str:
     return digest.hexdigest()
 
 
-async def cached[M: BaseModel](directory: Path, key: str, model: type[M], compute: Callable[[], Awaitable[M]]) -> M:
+def load[M: BaseModel](directory: Path, key: str, model: type[M]) -> M | None:
     path = directory / f"{key}.json"
-    if path.exists():
-        return model.model_validate_json(path.read_text(encoding="utf-8"))
+    return model.model_validate_json(path.read_text(encoding="utf-8")) if path.exists() else None
+
+
+async def cached[M: BaseModel](directory: Path, key: str, model: type[M], compute: Callable[[], Awaitable[M]]) -> M:
+    stored = load(directory, key, model)
+    if stored is not None:
+        return stored
     result = await compute()
     directory.mkdir(parents=True, exist_ok=True)
-    path.write_text(result.model_dump_json(), encoding="utf-8")
+    (directory / f"{key}.json").write_text(result.model_dump_json(), encoding="utf-8")
     return result

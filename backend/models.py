@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -74,3 +74,7 @@ class AnalysisResult(BaseModel):
     fire_start: datetime
     """Earliest EFFIS fire start (UTC) inside the scene."""
     analysis: FireAnalysis
+
+
+class AnalysisInProgress(BaseModel):
+    status: Literal["processing"] = "processing"

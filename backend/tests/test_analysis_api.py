@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from api import analysis
 from libs.effis import FireStartNotFoundError
 from libs.http_client import get_http_client
-from pipeline.models import BurnedArea, FireAnalysis, SceneInfo, SceneInput
+from pipeline.models import BurnedArea, FireAnalysis, SceneInfo, SceneInput, SmokeArea
 from tests.replay import ReplayTransport
 from tests.scenes import SCENES_DIR
 
@@ -31,7 +31,8 @@ def fire_analysis(scene: SceneInput) -> FireAnalysis:
             bbox=scene.bbox,
             image_size=scene.image_size,
         ),
-        burned_area=BurnedArea(polygons=[], area_ha=2455.0, perimeter_km=40.0, severity=[]),
+        burned_area=BurnedArea(polygons=[], area_ha=2455.0, perimeter_km=40.0, under_smoke_ha=0.0, severity=[]),
+        smoke=SmokeArea(area_ha=0.0, geometry={"type": "MultiPolygon", "coordinates": []}),
         not_assessable_ha=0.0,
         active_fires=[],
         active_front_km=0.0,
@@ -101,3 +102,19 @@ def test_rejects_a_scene_without_an_effis_fire(monkeypatch: pytest.MonkeyPatch) 
 
     assert response.status_code == 422
     assert response.json() == {"detail": "fire_start_not_found"}
+
+
+def test_analyses_an_example_scene_in_the_background_and_then_serves_it_from_the_cache(
+    services: dict[str, list[object]],
+) -> None:
+    with TestClient(app) as client:
+        first = client.get("/analysis/scenes/niebla")
+        responses = [client.get("/analysis/scenes/niebla") for _ in range(50)]
+        ready = next(response for response in responses if response.status_code == 200)
+        again = client.get("/analysis/scenes/niebla")
+
+    assert first.status_code == 202
+    assert first.json() == {"status": "processing"}
+    assert ready.json()["burned_area"]["area_ha"] == 2455.0
+    assert again.status_code == 200
+    assert len(services["pipeline"]) == 1
