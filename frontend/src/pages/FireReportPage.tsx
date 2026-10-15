@@ -1,6 +1,9 @@
-import { CheckCircleIcon, StackIcon } from '@phosphor-icons/react'
+import { IconPhoto, IconStack2 } from '@tabler/icons-react'
+
+import logo from '@/assets/logo.svg'
 
 import { ChartCard3 } from '@/components/chart-card3'
+import { SceneDayControls } from '@/components/SceneDayControls'
 import { StatsCard1 } from '@/components/stats-card1'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,12 +15,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Map, MapControls, MapGeoJSON, MapMarker, MarkerContent, MarkerLabel } from '@/components/ui/map'
+import { Map, MapControls, MapGeoJSON, MapImage, MapMarker, MarkerContent, MarkerLabel } from '@/components/ui/map'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { mapLayerOrder, useFireReportPage } from '@/hooks/useFireReportPage'
+import { mapLayerOrder, NO_COMPARE, useFireReportPage } from '@/hooks/useFireReportPage'
 import { t } from '@/i18n'
 import { formatNumber } from '@/lib/fireReport'
 import { palette } from '@/lib/palette'
@@ -31,16 +34,25 @@ export function FireReportPage() {
     <div className="flex h-screen flex-col overflow-hidden lg:flex-row">
       <main className="relative h-[60vh] min-w-0 flex-1 lg:h-full">
         {page.isLoading && <Skeleton className="size-full rounded-none" />}
-        {view && page.mapStyle && (
+        {view && page.basemap && (
           <>
             <Map
               key={view.report.id}
               theme="light"
-              styles={{ light: page.mapStyle }}
+              styles={{ light: page.basemap }}
               bounds={view.mapData.bounds}
               fitBoundsOptions={{ padding: 24 }}
             >
               <MapControls position="bottom-right" showCompass showFullscreen />
+              {page.sceneImages.map((image) => (
+                <MapImage
+                  key={image.id}
+                  id={image.id}
+                  url={image.url}
+                  coordinates={image.coordinates}
+                  opacity={image.opacity}
+                />
+              ))}
               {page.visibleLayers.severity &&
                 view.mapData.severity.map((layer) => (
                   <MapGeoJSON
@@ -95,10 +107,11 @@ export function FireReportPage() {
             <div className="absolute top-4 left-4 flex gap-2">
               <Select value={page.composite} onValueChange={(value) => page.setComposite(value as Composite)}>
                 <SelectTrigger aria-label={t.map.baseImage} className="w-48 bg-card shadow-sm">
+                  <IconPhoto aria-hidden className="text-muted-foreground" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {view.report.scene.composites.map((composite) => (
+                  {page.composites.map((composite) => (
                     <SelectItem key={composite} value={composite}>
                       {t.map.composites[composite]}
                     </SelectItem>
@@ -108,7 +121,7 @@ export function FireReportPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="bg-card shadow-sm">
-                    <StackIcon aria-hidden />
+                    <IconStack2 aria-hidden />
                     {t.map.layers}
                   </Button>
                 </DropdownMenuTrigger>
@@ -143,11 +156,11 @@ export function FireReportPage() {
       </main>
 
       <aside
-        aria-label={t.app.title}
+        aria-label={t.app.panel}
         className="flex min-h-0 flex-1 flex-col border-t bg-background lg:w-[480px] lg:flex-none lg:border-t-0 lg:border-l"
       >
         <header className="flex flex-col gap-3 border-b bg-card p-4">
-          <h1 className="text-lg font-semibold">{t.app.title}</h1>
+          <img src={logo} alt={t.app.logo} className="size-8" />
           <Select value={page.fireId} onValueChange={page.selectFire}>
             <SelectTrigger aria-label={t.app.fireSelector} className="w-full">
               <SelectValue />
@@ -160,14 +173,21 @@ export function FireReportPage() {
               ))}
             </SelectContent>
           </Select>
-          {view && (
-            <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-              <span>{view.meta.scene}</span>
-              <span className="inline-flex items-center gap-1">
-                <CheckCircleIcon weight="fill" className="text-tag-green-foreground" aria-hidden />
-                {view.meta.location}
-              </span>
-            </div>
+          {page.scenes.day && (
+            <SceneDayControls
+              dayOptions={page.scenes.dayOptions}
+              compareOptions={page.scenes.compareOptions}
+              day={page.scenes.day}
+              onDayChange={page.scenes.selectDay}
+              compareDay={page.scenes.compareDay}
+              noCompareValue={NO_COMPARE}
+              onCompareDayChange={page.scenes.selectCompareDay}
+              compareOpacity={page.scenes.compareOpacity}
+              onCompareOpacityChange={page.scenes.setCompareOpacity}
+              isCompareActive={page.scenes.isCompareActive}
+              isLoading={page.scenes.isLoading}
+              isError={page.scenes.isError}
+            />
           )}
         </header>
 

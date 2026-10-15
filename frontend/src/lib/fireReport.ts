@@ -1,10 +1,9 @@
 import type { FeatureCollection, Geometry } from 'geojson'
-import type { StyleSpecification } from 'maplibre-gl'
 
 import type { ChartCard3Datum } from '@/components/chart-card3'
 import { t } from '@/i18n'
 import { palette } from '@/lib/palette'
-import type { Composite, FireReport, LandCover, MapLayerId, SeverityClass } from '@/types/fireReport'
+import type { FireReport, LandCover, MapLayerId, SeverityClass } from '@/types/fireReport'
 
 export type Kpi = {
   id: string
@@ -62,29 +61,12 @@ export const severityColors: Record<SeverityClass, string> = {
   alta: palette.purple11,
 }
 
-const severityChartVars: Record<SeverityClass, string> = {
-  sin_quemar: 'var(--chart-5)',
-  baja: 'var(--chart-1)',
-  moderada_baja: 'var(--chart-2)',
-  moderada_alta: 'var(--chart-3)',
-  alta: 'var(--chart-4)',
-}
-
 export function formatNumber(value: number, digits = 0): string {
   return value.toLocaleString('es-ES', { maximumFractionDigits: digits, minimumFractionDigits: digits })
 }
 
 export function formatDate(isoDate: string): string {
   return new Date(isoDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
-}
-
-function formatPasses(report: FireReport): string {
-  return report.scene.passes
-    .map((pass) => {
-      const time = new Date(pass.acquiredAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })
-      return `${pass.platform} ${time} UTC`
-    })
-    .join(' + ')
 }
 
 function burnedSeverityHa(report: FireReport): number {
@@ -106,13 +88,6 @@ function townsInside(report: FireReport) {
 
 function roadsKm(report: FireReport): number {
   return report.affected.roads.reduce((sum, road) => sum + road.kmInside, 0)
-}
-
-export function buildMeta(report: FireReport): { scene: string; location: string } {
-  return {
-    scene: t.app.sceneMeta(formatDate(report.scene.date), formatPasses(report)),
-    location: t.app.locationVerified(report.scene.georeferenceInliers),
-  }
 }
 
 export function buildSummary(report: FireReport): string {
@@ -174,7 +149,7 @@ export function buildSeverityChart(report: FireReport): { description: string; d
     description: t.severity.description(formatDate(report.severity.preFireDate), formatDate(report.scene.date)),
     data: report.severity.classes
       .filter((item) => item.class !== 'sin_quemar')
-      .map((item) => ({ label: t.severity.classes[item.class], value: item.areaHa, fill: severityChartVars[item.class] })),
+      .map((item) => ({ label: t.severity.classes[item.class], value: item.areaHa, fill: 'var(--chart-severity)' })),
     footer: unburned ? [t.severity.footer(formatNumber((unburned.areaHa / total) * 100))] : [],
   }
 }
@@ -184,7 +159,7 @@ export function buildLandCoverChart(report: FireReport): { data: ChartCard3Datum
     data: (Object.entries(report.environment.landCoverPct) as [LandCover, number][])
       .filter(([, pct]) => pct >= MIN_LAND_COVER_PCT)
       .sort(([, a], [, b]) => b - a)
-      .map(([type, pct]) => ({ label: t.environment.landCover[type], value: Math.round(pct), fill: 'var(--muted-foreground)' })),
+      .map(([type, pct]) => ({ label: t.environment.landCover[type], value: Math.round(pct), fill: 'var(--chart-vegetation)' })),
     footer: [
       t.environment.natura(formatNumber(report.environment.natura2000Pct)),
       t.environment.recurrence(formatNumber(report.environment.recurrencePct)),
@@ -253,25 +228,5 @@ export function buildMapData(report: FireReport) {
     reservoirs: collection(report.affected.reservoirs.map((reservoir) => reservoir.geometry)),
     official: collection([report.validation.officialPerimeter]),
     towns: report.affected.towns.filter((town) => town.inside),
-  }
-}
-
-export function buildMapStyle(basemap: StyleSpecification, report: FireReport, composite: Composite): StyleSpecification {
-  const firstLabelIndex = basemap.layers.findIndex((layer) => layer.type === 'symbol')
-  return {
-    ...basemap,
-    sources: {
-      ...basemap.sources,
-      scene: {
-        type: 'image',
-        url: report.scene.imageUrls[composite] as string,
-        coordinates: report.scene.corners,
-      },
-    },
-    layers: [
-      ...basemap.layers.slice(0, firstLabelIndex),
-      { id: 'scene', type: 'raster', source: 'scene' },
-      ...basemap.layers.slice(firstLabelIndex),
-    ],
   }
 }

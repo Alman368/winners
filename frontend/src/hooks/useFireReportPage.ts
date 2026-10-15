@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 
 import { fetchBasemapStyle } from '@/api/basemap'
 import { fetchFireReport } from '@/api/fireReports'
+import { fetchScenePasses } from '@/api/scenes'
 import { demoFires } from '@/lib/demoFires'
 import {
   buildAffectedRows,
@@ -10,14 +11,15 @@ import {
   buildLandCoverChart,
   buildLegend,
   buildMapData,
-  buildMapStyle,
-  buildMeta,
   buildSeverityChart,
   buildSummary,
 } from '@/lib/fireReport'
+import { availableComposites, buildDayOptions, buildSceneImage, passWindow, sceneBbox } from '@/lib/scenes'
 import type { Composite, MapLayerId } from '@/types/fireReport'
 
 export const mapLayerOrder: MapLayerId[] = ['severity', 'burned', 'fire', 'towns', 'reservoirs', 'official']
+
+export const NO_COMPARE = 'none'
 
 const initialLayers: Record<MapLayerId, boolean> = {
   severity: true,
@@ -28,10 +30,15 @@ const initialLayers: Record<MapLayerId, boolean> = {
   official: false,
 }
 
+const INITIAL_COMPARE_OPACITY = 0.5
+
 export function useFireReportPage() {
   const [fireId, setFireId] = useState(demoFires[0].id)
   const [composite, setComposite] = useState<Composite>('swir')
   const [visibleLayers, setVisibleLayers] = useState(initialLayers)
+  const [day, setDay] = useState<string | null>(null)
+  const [compareDay, setCompareDay] = useState<string | null>(null)
+  const [compareOpacity, setCompareOpacity] = useState(INITIAL_COMPARE_OPACITY)
 
   const reportQuery = useQuery({
     queryKey: ['fire-report', fireId],
@@ -43,15 +50,23 @@ export function useFireReportPage() {
     queryFn: fetchBasemapStyle,
     staleTime: Infinity,
   })
+  const report = reportQuery.data
+  const passesQuery = useQuery({
+    queryKey: ['scene-passes', fireId],
+    queryFn: () => {
+      const window = passWindow(report!)
+      return fetchScenePasses(sceneBbox(report!), window.start, window.end)
+    },
+    enabled: report !== undefined,
+    staleTime: Infinity,
+  })
 
   const view = useMemo(() => {
-    if (!reportQuery.data) {
+    if (!report) {
       return null
     }
-    const report = reportQuery.data
     return {
       report,
-      meta: buildMeta(report),
       summary: buildSummary(report),
       kpis: buildKpis(report),
       severityChart: buildSeverityChart(report),
@@ -59,21 +74,54 @@ export function useFireReportPage() {
       affectedRows: buildAffectedRows(report),
       mapData: buildMapData(report),
     }
-  }, [reportQuery.data])
+  }, [report])
 
-  const mapStyle = useMemo(
-    () => (reportQuery.data && basemapQuery.data ? buildMapStyle(basemapQuery.data, reportQuery.data, composite) : null),
-    [reportQuery.data, basemapQuery.data, composite],
+  const selectedDay = report ? (day ?? report.scene.date) : null
+  const shownDays = selectedDay ? [selectedDay, ...(compareDay ? [compareDay] : [])] : []
+  const composites = report ? availableComposites(report, shownDays) : []
+
+  const dayOptions = useMemo(
+    () => (report && passesQuery.data ? buildDayOptions(report, passesQuery.data) : []),
+    [report, passesQuery.data],
   )
 
-  const legend = useMemo(
-    () => (reportQuery.data ? buildLegend(reportQuery.data, visibleLayers) : []),
-    [reportQuery.data, visibleLayers],
-  )
+  const sceneImages = useMemo(() => {
+    if (!report || !selectedDay) {
+      return []
+    }
+    const images = [buildSceneImage(report, 'scene', selectedDay, composite, 1)]
+    if (compareDay) {
+      images.push(buildSceneImage(report, 'scene-compare', compareDay, composite, compareOpacity))
+    }
+    return images
+  }, [report, selectedDay, compareDay, composite, compareOpacity])
+
+  const legend = useMemo(() => (report ? buildLegend(report, visibleLayers) : []), [report, visibleLayers])
+
+  const keepCompositeAvailable = (days: string[]) => {
+    if (report && !availableComposites(report, days).includes(composite)) {
+      setComposite('swir')
+    }
+  }
 
   const selectFire = (id: string) => {
     setFireId(id)
     setComposite('swir')
+    setDay(null)
+    setCompareDay(null)
+  }
+
+  const selectDay = (value: string) => {
+    const nextCompareDay = compareDay === value ? null : compareDay
+    setDay(value)
+    setCompareDay(nextCompareDay)
+    keepCompositeAvailable([value, ...(nextCompareDay ? [nextCompareDay] : [])])
+  }
+
+  const selectCompareDay = (value: string) => {
+    const nextCompareDay = value === NO_COMPARE ? null : value
+    setCompareDay(nextCompareDay)
+    keepCompositeAvailable([selectedDay!, ...(nextCompareDay ? [nextCompareDay] : [])])
   }
 
   const setLayerVisible = (layer: MapLayerId, visible: boolean) => {
@@ -85,12 +133,27 @@ export function useFireReportPage() {
     fireId,
     selectFire,
     composite,
+    composites,
     setComposite,
     visibleLayers,
     setLayerVisible,
     view,
-    mapStyle,
+    basemap: basemapQuery.data,
+    sceneImages,
     legend,
+    scenes: {
+      dayOptions,
+      compareOptions: dayOptions.filter((option) => option.day !== selectedDay),
+      day: selectedDay,
+      selectDay,
+      compareDay: compareDay ?? NO_COMPARE,
+      selectCompareDay,
+      compareOpacity,
+      setCompareOpacity,
+      isCompareActive: compareDay !== null,
+      isLoading: passesQuery.isLoading,
+      isError: passesQuery.isError,
+    },
     isLoading: reportQuery.isLoading || basemapQuery.isLoading,
     isError: reportQuery.isError || basemapQuery.isError,
   }

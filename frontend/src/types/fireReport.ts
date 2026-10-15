@@ -10,21 +10,14 @@ export type SeverityClass = 'sin_quemar' | 'baja' | 'moderada_baja' | 'moderada_
 
 export type LandCover = 'broadlea' | 'conifer' | 'mixed' | 'scleroph' | 'transit' | 'othernatlc' | 'agriareas' | 'artifsurf'
 
-export type SatellitePass = {
-  acquiredAt: string
-  platform: string
-}
-
 export type FireReport = {
   id: string
   name: string
   scene: {
     date: string
-    passes: SatellitePass[]
     composites: Composite[]
     imageUrls: Partial<Record<Composite, string>>
     corners: [LngLat, LngLat, LngLat, LngLat]
-    georeferenceInliers: number
   }
   burned: {
     perimeter: AreaGeometry
