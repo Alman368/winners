@@ -11,8 +11,9 @@ from shapely.geometry import LineString, MultiLineString, MultiPolygon, mapping
 
 from models import AffectedRoad, KilometrePoint
 
-OVERPASS_URL: str = "https://z.overpass-api.de/api/interpreter"
-"""The main overpass-api.de balancer returned 502 while its `z` instance answered; queries take ~40 s."""
+OVERPASS_URL: str = "https://overpass-api.de/api/interpreter"
+"""Main balancer of overpass-api.de; queries take ~40 s. Its `z` instance refuses connections from the production
+server."""
 USER_AGENT: str = "malackathon-wildfire/0.1"
 ROAD_TYPES: str = "motorway|trunk|primary|secondary|tertiary|unclassified"
 """Roads between towns, with their `_link` ramps. Streets and forest tracks are left out."""
