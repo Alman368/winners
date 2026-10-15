@@ -9,13 +9,12 @@ from numpy.typing import NDArray
 from rasterio.io import MemoryFile
 
 from libs import cache
-from libs.copernicus.auth import fetch_token
-from libs.copernicus.credentials import copernicus_credentials
+from libs.copernicus.auth import copernicus_token
+from libs.copernicus.process import PROCESS_URL
 from pipeline.bands import Bands, PreFireComposite
 from pipeline.config import CONFIG
 from pipeline.grid import Grid
 
-PROCESS_URL: str = "https://sh.dataspace.copernicus.eu/api/v1/process"
 CACHE_DIR: Path = cache.CACHE_DIR / "copernicus"
 RATE_LIMIT_WAIT_MS: int = 5000
 """Wait after a 429 that comes without `Retry-After`. Copernicus limits processing units per minute, so big scenes
@@ -81,9 +80,8 @@ def _process_request(
 
 def _token() -> str:
     """Shared Copernicus token (`libs/copernicus/auth.py`), with the same credentials as the rest of the backend."""
-    credentials = copernicus_credentials()
     with httpx.Client(timeout=60) as client:
-        return fetch_token(client, credentials.client_id, credentials.client_secret)
+        return copernicus_token(client)
 
 
 async def _fetch_tile(client: httpx.AsyncClient, semaphore: asyncio.Semaphore, request: dict[str, object]) -> NDArray[np.uint16]:

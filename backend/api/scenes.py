@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from typing import Annotated
 
 import httpx
@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Response, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from PIL import Image
 
+from libs import cache
 from libs.copernicus.auth import copernicus_token
 from libs.copernicus.catalog import Acquisition, search_acquisitions
 from libs.copernicus.render import Composite, render_composite
@@ -15,7 +16,10 @@ from models import SceneAnalysis
 
 router: APIRouter = APIRouter(prefix="/scenes", tags=["scenes"])
 
-IMAGE_CACHE_CONTROL: str = "public, max-age=86400, immutable"
+PUBLICATION_LATENCY_DAYS: int = 2
+"""Sentinel-2 tiles can take up to ~39 h to be published, so renders of more recent days may still be incomplete."""
+SETTLED_CACHE_CONTROL: str = "public, max-age=31536000, immutable"
+RECENT_CACHE_CONTROL: str = "no-cache"
 
 
 @router.post("/analyze")
@@ -38,6 +42,10 @@ async def list_passes(
     return await run_in_threadpool(search_acquisitions, client, token, (west, south, east, north), start, end)
 
 
+def _render(client: httpx.Client, bbox: tuple[float, float, float, float], day: date, composite: Composite) -> bytes:
+    return render_composite(client, copernicus_token(client), bbox, day, composite)
+
+
 @router.get("/image")
 async def scene_image(
     west: float,
@@ -48,6 +56,13 @@ async def scene_image(
     composite: Composite,
     client: Annotated[httpx.Client, Depends(get_http_client)],
 ) -> Response:
-    token = await run_in_threadpool(copernicus_token, client)
-    png = await run_in_threadpool(render_composite, client, token, (west, south, east, north), day, composite)
-    return Response(content=png, media_type="image/png", headers={"Cache-Control": IMAGE_CACHE_CONTROL})
+    bbox = (west, south, east, north)
+    if day > datetime.now(timezone.utc).date() - timedelta(days=PUBLICATION_LATENCY_DAYS):
+        png = await run_in_threadpool(_render, client, bbox, day, composite)
+        return Response(content=png, media_type="image/png", headers={"Cache-Control": RECENT_CACHE_CONTROL})
+    png = await cache.cached_bytes(
+        cache.CACHE_DIR / "renders",
+        cache.cache_key(str(bbox), day.isoformat(), composite),
+        lambda: run_in_threadpool(_render, client, bbox, day, composite),
+    )
+    return Response(content=png, media_type="image/png", headers={"Cache-Control": SETTLED_CACHE_CONTROL})

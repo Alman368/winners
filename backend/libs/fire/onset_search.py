@@ -3,9 +3,8 @@ from datetime import date, datetime, timedelta
 
 import httpx
 
-from libs.copernicus.auth import fetch_token
+from libs.copernicus.auth import copernicus_token
 from libs.copernicus.catalog import search_acquisitions
-from libs.copernicus.credentials import copernicus_credentials
 from libs.fire.onset import Observation, Onset, estimate_onset
 from pipeline import copernicus
 from pipeline.grid import Grid
@@ -14,9 +13,8 @@ LOOKBACK_DAYS = 30
 
 
 def _last_pass_per_day(bbox: tuple[float, float, float, float], fire_day: date) -> dict[date, datetime]:
-    credentials = copernicus_credentials()
     with httpx.Client(timeout=60) as client:
-        token = fetch_token(client, credentials.client_id, credentials.client_secret)
+        token = copernicus_token(client)
         acquisitions = search_acquisitions(client, token, bbox, fire_day - timedelta(days=LOOKBACK_DAYS), fire_day)
     # Daily mosaics keep the most recent pass of each day, so that pass's time stamps the day.
     return {a.acquired_at.date(): a.acquired_at for a in acquisitions}

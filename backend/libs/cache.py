@@ -10,6 +10,7 @@ Everything lives under `CACHE_DIR` (`backend/data/cache/`, ignored by git, a Doc
 - `fire-days/`: first and last Sentinel-2 days of each example scene's fire, keyed by the scene and the pipeline code.
 - `context/`: roads cut by each burned area and the weather of the fire, keyed by the analysis and fire start.
 - `context-scenes/`: the same for the example scenes, keyed by the scene and its precomputed analysis.
+- `renders/`: PNG renders of a bbox, day and composite for the map.
 
 Deleting the folder (or one namespace) forces everything to be computed again from scratch.
 """
@@ -43,4 +44,14 @@ async def cached[M: BaseModel](directory: Path, key: str, model: type[M], comput
     result = await compute()
     directory.mkdir(parents=True, exist_ok=True)
     (directory / f"{key}.json").write_text(result.model_dump_json(), encoding="utf-8")
+    return result
+
+
+async def cached_bytes(directory: Path, key: str, compute: Callable[[], Awaitable[bytes]]) -> bytes:
+    path = directory / key
+    if path.exists():
+        return path.read_bytes()
+    result = await compute()
+    directory.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(result)
     return result
