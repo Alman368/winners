@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 from typing import Annotated
 
 import httpx
@@ -7,6 +8,7 @@ from fastapi.concurrency import run_in_threadpool
 from PIL import Image
 
 from libs import cache
+from libs.copernicus import render
 from libs.copernicus.auth import copernicus_token
 from libs.copernicus.catalog import Acquisition, search_acquisitions
 from libs.copernicus.render import Composite, render_composite
@@ -16,9 +18,11 @@ from models import SceneAnalysis
 
 router: APIRouter = APIRouter(prefix="/scenes", tags=["scenes"])
 
-PUBLICATION_LATENCY_DAYS: int = 2
-"""Sentinel-2 tiles can take up to ~39 h to be published, so renders of more recent days may still be incomplete."""
-SETTLED_CACHE_CONTROL: str = "public, max-age=31536000, immutable"
+PUBLICATION_LATENCY_DAYS: int = 3
+"""Sentinel-2 tiles can take up to ~39 h to be published, so a day is only rendered for good once 48 h have passed
+since it ended."""
+RENDER_SOURCE: str = cache.cache_key(Path(render.__file__).read_bytes())
+SETTLED_CACHE_CONTROL: str = "public, max-age=86400"
 RECENT_CACHE_CONTROL: str = "no-cache"
 
 
@@ -62,7 +66,7 @@ async def scene_image(
         return Response(content=png, media_type="image/png", headers={"Cache-Control": RECENT_CACHE_CONTROL})
     png = await cache.cached_bytes(
         cache.CACHE_DIR / "renders",
-        cache.cache_key(str(bbox), day.isoformat(), composite),
+        cache.cache_key(str(bbox), day.isoformat(), composite, RENDER_SOURCE),
         lambda: run_in_threadpool(_render, client, bbox, day, composite),
     )
     return Response(content=png, media_type="image/png", headers={"Cache-Control": SETTLED_CACHE_CONTROL})

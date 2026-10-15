@@ -10,12 +10,14 @@ Everything lives under `CACHE_DIR` (`backend/data/cache/`, ignored by git, a Doc
 - `fire-days/`: first and last Sentinel-2 days of each example scene's fire, keyed by the scene and the pipeline code.
 - `context/`: roads cut by each burned area and the weather of the fire, keyed by the analysis and fire start.
 - `context-scenes/`: the same for the example scenes, keyed by the scene and its precomputed analysis.
-- `renders/`: PNG renders of a bbox, day and composite for the map.
+- `renders/`: PNG renders of a bbox, day and composite for the map, keyed by those and the render code.
 
 Deleting the folder (or one namespace) forces everything to be computed again from scratch.
 """
 
 import hashlib
+import os
+import tempfile
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
@@ -32,6 +34,14 @@ def cache_key(*parts: bytes | str) -> str:
     return digest.hexdigest()
 
 
+def _write_atomically(path: Path, content: bytes) -> None:
+    """Writes to a temporary sibling and renames it, so readers never see a partially written file."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as file:
+        file.write(content)
+    os.replace(file.name, path)
+
+
 def load[M: BaseModel](directory: Path, key: str, model: type[M]) -> M | None:
     path = directory / f"{key}.json"
     return model.model_validate_json(path.read_text(encoding="utf-8")) if path.exists() else None
@@ -42,8 +52,7 @@ async def cached[M: BaseModel](directory: Path, key: str, model: type[M], comput
     if stored is not None:
         return stored
     result = await compute()
-    directory.mkdir(parents=True, exist_ok=True)
-    (directory / f"{key}.json").write_text(result.model_dump_json(), encoding="utf-8")
+    _write_atomically(directory / f"{key}.json", result.model_dump_json().encode())
     return result
 
 
@@ -52,6 +61,5 @@ async def cached_bytes(directory: Path, key: str, compute: Callable[[], Awaitabl
     if path.exists():
         return path.read_bytes()
     result = await compute()
-    directory.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(result)
+    _write_atomically(path, result)
     return result
