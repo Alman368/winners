@@ -1,6 +1,6 @@
 export const es = {
   app: {
-    logo: 'Logo de Firewatch',
+    logo: 'Logo de Compás',
     panel: 'Panel del incendio',
     fireSelector: 'Incendio',
     loadError: 'No se ha podido cargar el informe del incendio.',
