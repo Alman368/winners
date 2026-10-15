@@ -1,0 +1,107 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource-variable/geist';
+
+:root {
+  --palette-gray-1: color(display-p3 1 1 1);
+  --palette-gray-2: color(display-p3 0.988 0.988 0.988);
+  --palette-gray-3: color(display-p3 0.976 0.976 0.976);
+  --palette-gray-4: color(display-p3 0.945 0.945 0.945);
+  --palette-gray-5: color(display-p3 0.922 0.922 0.922);
+  --palette-gray-6: color(display-p3 0.839 0.839 0.839);
+  --palette-gray-11: color(display-p3 0.4 0.4 0.4);
+  --palette-carbon: #1b1b1b;
+  --palette-blue-3: color(display-p3 0.933 0.948 0.992);
+  --palette-blue-9: color(display-p3 0.276 0.384 0.837);
+  --palette-blue-11: color(display-p3 0.256 0.354 0.755);
+  --palette-red-3: color(display-p3 0.985 0.925 0.925);
+  --palette-red-9: color(display-p3 0.83 0.329 0.324);
+  --palette-red-11: color(display-p3 0.744 0.234 0.222);
+  --palette-pink-11: color(display-p3 0.698 0.219 0.528);
+  --palette-purple-3: color(display-p3 0.963 0.931 0.989);
+  --palette-purple-11: color(display-p3 0.473 0.281 0.687);
+  --palette-sky-11: color(display-p3 0.193 0.448 0.605);
+  --palette-green-3: color(display-p3 0.913 0.964 0.925);
+  --palette-green-9: color(display-p3 0.332 0.634 0.442);
+  --palette-green-11: color(display-p3 0.19 0.5 0.32);
+  --palette-amber-3: color(display-p3 0.994 0.969 0.782);
+  --palette-amber-11: color(display-p3 0.64 0.4 0);
+
+  --background: var(--palette-gray-2);
+  --foreground: var(--palette-carbon);
+  --card: var(--palette-gray-1);
+  --card-foreground: var(--palette-carbon);
+  --popover: var(--palette-gray-1);
+  --popover-foreground: var(--palette-carbon);
+  --primary: var(--palette-carbon);
+  --primary-foreground: var(--palette-gray-1);
+  --secondary: var(--palette-gray-3);
+  --secondary-foreground: var(--palette-gray-11);
+  --muted: var(--palette-gray-3);
+  --muted-foreground: var(--palette-gray-11);
+  --accent: var(--palette-gray-4);
+  --accent-foreground: var(--palette-carbon);
+  --destructive: var(--palette-red-9);
+  --border: var(--palette-gray-5);
+  --input: var(--palette-gray-6);
+  --ring: var(--palette-carbon);
+  --radius: 0.625rem;
+
+  --chart-1: var(--palette-amber-11);
+  --chart-2: var(--palette-red-9);
+  --chart-3: var(--palette-pink-11);
+  --chart-4: var(--palette-purple-11);
+  --chart-5: var(--palette-green-9);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-tag-red-background: var(--palette-red-3);
+  --color-tag-red-foreground: var(--palette-red-11);
+  --color-tag-amber-background: var(--palette-amber-3);
+  --color-tag-amber-foreground: var(--palette-amber-11);
+  --color-tag-green-background: var(--palette-green-3);
+  --color-tag-green-foreground: var(--palette-green-11);
+  --color-tag-blue-background: var(--palette-blue-3);
+  --color-tag-blue-foreground: var(--palette-blue-11);
+  --color-tag-purple-background: var(--palette-purple-3);
+  --color-tag-purple-foreground: var(--palette-purple-11);
+  --font-sans: 'Geist Variable', sans-serif;
+  --font-heading: var(--font-sans);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+}
