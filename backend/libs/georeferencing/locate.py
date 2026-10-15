@@ -18,6 +18,7 @@ REFINE_MARGIN = 0.1
 class Location:
     bbox: tuple[float, float, float, float]
     image_size: tuple[int, int]
+    country_code: str
     centre_lon: float
     centre_lat: float
     metres_per_px: float
@@ -26,10 +27,10 @@ class Location:
 
 def locate(client: httpx.Client, image: np.ndarray, place: str) -> Location:
     """Finds where a grayscale Sentinel-2 export lies, searching around a named place."""
-    lon, lat = geocode(client, place)
-    x, y = to_mercator(lon, lat)
+    found = geocode(client, place)
+    x, y = to_mercator(found.lon, found.lat)
     # Mercator stretches distances by 1/cos(lat), so the radius is scaled to stay in ground metres.
-    radius = SEARCH_RADIUS_M / math.cos(math.radians(lat))
+    radius = SEARCH_RADIUS_M / math.cos(math.radians(found.lat))
     search_box = MercatorBox(west=x - radius, south=y - radius, east=x + radius, north=y + radius)
     coarse = match(image, fetch_reference(client, search_box, REFERENCE_WIDTH_PX)).box
 
@@ -52,6 +53,7 @@ def locate(client: httpx.Client, image: np.ndarray, place: str) -> Location:
     return Location(
         bbox=(west, south, east, north),
         image_size=(image.shape[1], image.shape[0]),
+        country_code=found.country_code,
         centre_lon=centre_lon,
         centre_lat=centre_lat,
         metres_per_px=metres_per_px,

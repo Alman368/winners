@@ -2,35 +2,28 @@ from datetime import datetime, timezone
 
 import numpy as np
 import pytest
-from affine import Affine
 
-from libs.copernicus.process import REFLECTANCE_BANDS, BandScene
 from libs.fire.onset import Observation, ScarNotFoundError, estimate_onset
+from pipeline.bands import Bands
 
-SCAR = (slice(20, 60), slice(20, 60))  # 1600 px = 64 ha at 20 m
-FIELD = (slice(80, 90), slice(80, 90))  # 100 px = 4 ha at 20 m
+PIXEL_AREA_HA = 0.04  # 20 m pixels
+SCAR = (slice(20, 60), slice(20, 60))  # 1600 px = 64 ha
+FIELD = (slice(80, 90), slice(80, 90))  # 100 px = 4 ha, below the minimum burned area
 CLOUD_HIGH_PROBABILITY = 9
+VEGETATION = 4
 
 
-def scene(burned: tuple[tuple[slice, slice], ...] = (), cloud: tuple[tuple[slice, slice], ...] = ()) -> BandScene:
-    reflectance = {band: np.zeros((100, 100), np.float32) for band in REFLECTANCE_BANDS}
-    reflectance["B08"][:] = 0.30
-    reflectance["B12"][:] = 0.10
+def bands(burned: tuple[tuple[slice, slice], ...] = (), cloud: tuple[tuple[slice, slice], ...] = ()) -> Bands:
+    b8a = np.full((100, 100), 0.30, np.float32)
+    b12 = np.full((100, 100), 0.10, np.float32)
     for region in burned:
-        reflectance["B08"][region] = 0.15
-        reflectance["B12"][region] = 0.25
-    scl = np.full((100, 100), 4, np.uint8)
+        b8a[region] = 0.15
+        b12[region] = 0.25
+    scl = np.full((100, 100), VEGETATION, np.uint8)
     for region in cloud:
         scl[region] = CLOUD_HIGH_PROBABILITY
-    return BandScene(
-        reflectance=reflectance,
-        scl=scl,
-        data_mask=np.ones((100, 100), bool),
-        epsg=32629,
-        transform=Affine(20, 0, 690000, 0, -20, 4150000),
-        metres_per_px=20.0,
-        geotiff=b"",
-    )
+    zeros = np.zeros((100, 100), np.float32)
+    return Bands(b04=zeros, b08=zeros, b8a=b8a, b11=zeros, b12=b12, scl=scl, valid=np.ones((100, 100), bool))
 
 
 def at(month: int, day: int) -> datetime:
@@ -39,25 +32,26 @@ def at(month: int, day: int) -> datetime:
 
 def test_brackets_the_start_between_the_last_clean_pass_and_the_first_burned_one() -> None:
     earlier = [
-        Observation(at(7, 20), scene()),
-        Observation(at(7, 25), scene()),
-        Observation(at(7, 30), scene()),
-        Observation(at(8, 4), scene(burned=(SCAR,))),
+        Observation(at(7, 20), bands()),
+        Observation(at(7, 25), bands()),
+        Observation(at(7, 30), bands()),
+        Observation(at(8, 4), bands(burned=(SCAR,))),
     ]
 
-    onset = estimate_onset(earlier, Observation(at(8, 8), scene(burned=(SCAR,))))
+    onset = estimate_onset(earlier, Observation(at(8, 8), bands(burned=(SCAR,))), PIXEL_AREA_HA)
 
     assert (onset.after, onset.before) == (at(7, 30), at(8, 4))
+    assert onset.scar_ha == pytest.approx(64, abs=0.5)
 
 
 def test_skips_passes_where_clouds_hide_the_scar() -> None:
     earlier = [
-        Observation(at(7, 20), scene()),
-        Observation(at(7, 30), scene()),
-        Observation(at(8, 4), scene(cloud=(SCAR,))),
+        Observation(at(7, 20), bands()),
+        Observation(at(7, 30), bands()),
+        Observation(at(8, 4), bands(cloud=(SCAR,))),
     ]
 
-    onset = estimate_onset(earlier, Observation(at(8, 8), scene(burned=(SCAR,))))
+    onset = estimate_onset(earlier, Observation(at(8, 8), bands(burned=(SCAR,))), PIXEL_AREA_HA)
 
     assert (onset.after, onset.before) == (at(7, 30), at(8, 8))
     assert [check.status for check in onset.checks] == ["unburned", "cloudy"]
@@ -65,18 +59,18 @@ def test_skips_passes_where_clouds_hide_the_scar() -> None:
 
 def test_ignores_small_changes_outside_the_fire_scar() -> None:
     earlier = [
-        Observation(at(7, 20), scene()),
-        Observation(at(7, 25), scene(burned=(FIELD,))),
-        Observation(at(7, 30), scene(burned=(FIELD,))),
+        Observation(at(7, 20), bands()),
+        Observation(at(7, 25), bands(burned=(FIELD,))),
+        Observation(at(7, 30), bands(burned=(FIELD,))),
     ]
 
-    onset = estimate_onset(earlier, Observation(at(8, 8), scene(burned=(SCAR, FIELD))))
+    onset = estimate_onset(earlier, Observation(at(8, 8), bands(burned=(SCAR, FIELD))), PIXEL_AREA_HA)
 
     assert (onset.after, onset.before) == (at(7, 30), at(8, 8))
 
 
 def test_fails_when_the_fire_day_shows_no_scar() -> None:
-    earlier = [Observation(at(7, 20), scene())]
+    earlier = [Observation(at(7, 20), bands())]
 
     with pytest.raises(ScarNotFoundError):
-        estimate_onset(earlier, Observation(at(8, 8), scene(burned=(FIELD,))))
+        estimate_onset(earlier, Observation(at(8, 8), bands(burned=(FIELD,))), PIXEL_AREA_HA)

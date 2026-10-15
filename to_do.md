@@ -29,8 +29,9 @@ Tareas pendientes del algoritmo (`backend/pipeline/`), por prioridad. El detalle
 
 ## Integración con el resto del equipo
 
-- [ ] **Módulo de localización:** tiene que entregar `SceneInput` (`bbox`, `acquisition_date`, `fire_start`, `image_size`; ver §2). `fire_start` sale de EFFIS o, si el incendio no está en EFFIS, del primer foco de FIRMS en el bbox.
-- [ ] **Credenciales:** crear `backend/.env` con `CDSE_CLIENT_ID` y `CDSE_CLIENT_SECRET` en formato `CLAVE=valor` (ver `backend/.env.example`).
+- [x] **Módulo de localización:** `POST /api/analysis` (`backend/api/analysis.py`) construye el `SceneInput` con la georreferenciación de la foto y `fire_start` de EFFIS (`libs/effis.find_fire_start`, inicio más temprano en UTC de los incendios que tocan el bbox). Pendiente: FIRMS para incendios que no estén en EFFIS.
+- [x] **Credenciales:** `backend/.env` con `COPERNICUS_CLIENT_ID` y `COPERNICUS_CLIENT_SECRET` (mismas variables que el resto del backend; ver `backend/.env.example`).
 - [ ] **Regenerar el secret de CDSE**: se mostró en una salida de terminal durante el desarrollo.
-- [ ] **Decidir qué hacer con `backend/libs/detection.py`**: detecta sobre el JPG con el enfoque descartado en §3 y duplica este algoritmo.
-- [ ] **Endpoint de la API** que llame a `pipeline.pipeline.analyze` (fuera del alcance de este spec).
+- [x] **`backend/libs/detection.py`**: se conserva a propósito como análisis rápido sobre el JPG, sin red ni cuenta. El análisis principal es este algoritmo (ver el mapa de módulos en `specs.md` §4.1).
+- [x] **Endpoint de la API**: `POST /api/analysis`, con caché del resultado completo en `backend/data/cache/analysis/`. La caché de rásteres pasa a `backend/data/cache/copernicus/`.
+- [x] **Píxeles de la foto en Web Mercator**: `grid.lonlat_to_image_pixel` convertía la latitud linealmente (hasta 7,8 px de error en Madrid-Ávila). Corregido y con test.

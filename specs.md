@@ -169,28 +169,72 @@ Información que obtenemos de un GeoTIFF y de los metadatos:
 
 ### 3.6 Credenciales
 
-Cliente OAuth de Copernicus Data Space (client credentials), leído del `.env` de la raíz (ignorado por git):
+Cliente OAuth de Copernicus Data Space (client credentials). Lo usan el backend y el algoritmo (`pipeline/`) con las mismas variables, en **`backend/.env`**: está ignorado por git y es el archivo que Docker lee con `env_file`.
 
 ```
 COPERNICUS_CLIENT_ID=...
 COPERNICUS_CLIENT_SECRET=...
+FIRMS_MAP_KEY=...
 ```
 
-Los tests nunca llaman a servicios reales: reproducen respuestas grabadas (`RECORD_HTTP=1` para regrabarlas).
+Para arrancar el backend sin Docker hacen falta también `ENV` y `CORS_ORIGINS`; con Docker los pone `docker-compose`.
+
+Los tests nunca llaman a servicios reales: reproducen respuestas grabadas. Con `RECORD_HTTP=1` se graban solo las peticiones que aún no tienen grabación.
 
 ---
 
 ## 4. Arquitectura
 
 - **Backend**: Python con tipos y FastAPI (sin `jsonify`).
-  - El pipeline de detección y georreferenciación es una librería pura (`numpy`, `opencv`).
-  - La API solo lo envuelve.
+  - La lógica vive en librerías (`libs/`, `pipeline/`); la API (`api/`) solo la envuelve.
+  - El flujo completo y los módulos están en 4.1.
 - **Frontend**: React + TS.
   - Componentes que solo reciben props; la lógica va en hooks.
   - Llamadas a la API por `client.ts`.
   - i18n solo en español.
   - Skeletons mientras carga y modales que se cierran con Escape.
 - **Mapa**: MapLibre GL JS.
+
+### 4.1 Flujo y mapa de módulos del backend
+
+```
+JPG del Copernicus Browser + lugar
+  │  api/georeferencing.py · georeference_image()                (caché georeference/)
+  │    libs/copernicus/browser_export.py   fecha del nombre del archivo
+  │    libs/georeferencing/                Nominatim → mosaico EOX → SIFT + RANSAC → bbox, m/px, país
+  ▼
+GeoreferencedImage (date, bbox, image_size, country_code, …)
+  │  libs/effis.py · find_fire_start()     inicio del incendio en EFFIS (UTC)
+  ▼
+SceneInput (bbox, acquisition_date, fire_start, image_size)
+  │  pipeline/ (algoritmo de Iván)                               (caché copernicus/)
+  │    copernicus.py   descarga de bandas por teselas, reintentos, composición previa de 30 días
+  │    indices.py · burned_area.py · active_fire.py · vectorize.py
+  ▼
+FireAnalysis (zona quemada, severidad, focos, GeoJSON con lon/lat y píxeles de la foto)
+     api/analysis.py · POST /api/analysis → AnalysisResult        (caché analysis/)
+```
+
+| Módulo | Qué hace | Dónde se usa |
+|---|---|---|
+| `pipeline/` | **Algoritmo principal**: dNBR con composición previa, zona quemada, severidad, focos, área geodésica | `/api/analysis` |
+| `libs/georeferencing/` | Localiza una foto sin coordenadas | `/api/georeference`, `/api/analysis` |
+| `libs/copernicus/auth.py`, `credentials.py` | Token OAuth y credenciales `COPERNICUS_*` | Todo lo que llama a Copernicus, también `pipeline/` |
+| `libs/copernicus/catalog.py` | Pasadas de Sentinel-2 por bbox y fechas (catálogo de Copernicus) | Inicio estimado (INC-8) |
+| `libs/copernicus/process.py` | Bandas en GeoTIFF **UTM** (`fetch_bands`) | Análisis exploratorio; hectáreas exactas por píxel |
+| `libs/copernicus/browser_export.py` | Fecha de toma desde el nombre del archivo | Georreferenciación |
+| `libs/effis.py` | Incendios oficiales de EFFIS y fecha de inicio | `/api/fires`, `/api/analysis` |
+| `libs/firms.py` | Focos térmicos de NASA FIRMS | `/api/fires/{id}/hotspots` |
+| `libs/sentinel.py` | Pasadas de Sentinel-2 en Planetary Computer, **sin cuenta** | `/api/fires/{id}/scenes` |
+| `libs/detection.py` | Zona quemada y focos por **colores del JPG SWIR**: instantáneo, sin red ni cuenta, aproximado | `/api/scenes/analyze`; vista rápida y respaldo sin conexión |
+| `libs/fire/` | Inicio estimado con pasadas de Sentinel-2 (⏸ aparcado, INC-8) | Ninguno todavía |
+| `libs/cache.py` | Caché en disco (6.3) | `/api/georeference`, `/api/analysis`, `pipeline/` |
+
+**Conviven a propósito** dos formas de detectar y dos catálogos:
+- `libs/detection.py` (JPG) y `pipeline/` (bandas reales);
+- `libs/sentinel.py` (sin cuenta) y `libs/copernicus/catalog.py` (Copernicus).
+
+Las hectáreas oficiales salen de `pipeline/`.
 
 ---
 
@@ -219,7 +263,7 @@ Las métricas son objetivos iniciales: se fijan tras la primera medición base y
 | GEO-3 | Rechazo si no es fiable | Imagen de otra zona → `GeoreferenceError` | ✅ |
 | GEO-4 | Mosaico de referencia por teselas WMS | Teselas cosidas sin saltos, también en los bordes irregulares | ✅ |
 | GEO-5 | Localizar una escena desde el nombre del lugar (gruesa + fina) | Niebla, La Mierla y Madrid-Ávila: centro a < 500 m y m/px ±3 % | ✅ |
-| GEO-6 | Endpoint `POST /api/georeference` (imagen + lugar) → `date`, `bbox` (oeste, sur, este, norte), `image_size` (ancho, alto), centro, m/px, inliers | Contrato de la API; archivo no imagen → 422 `invalid_image`; lugar no encontrado → 422 `place_not_found`; no localizable → 422 `georeference_failed` | ✅ |
+| GEO-6 | Endpoint `POST /api/georeference` (imagen + lugar) → `date`, `bbox` (oeste, sur, este, norte), `image_size` (ancho, alto), `country_code`, centro, m/px, inliers | Contrato de la API; archivo no imagen → 422 `invalid_image`; lugar no encontrado → 422 `place_not_found`; no localizable → 422 `georeference_failed` | ✅ |
 | GEO-7 | Robustez a recorte y zoom | Recortes del 30-100 % y escalas de 0,5-2× recuperan el bbox | Pendiente |
 | CDS-1 | OAuth client credentials desde `.env` | Las credenciales se canjean por un `access_token` | ✅ |
 | CDS-2 | Render Process API: bbox + fecha + script (TC, SWIR, Wildfires) | Respuesta grabada → imagen del tamaño pedido | Pendiente |
@@ -228,9 +272,13 @@ Las métricas son objetivos iniciales: se fijan tras la primera medición base y
 | DAT-1 | Fecha leída del nombre (✅; exportaciones de varios días → 422 `multi_day_export`) y verificada por contenido (pendiente) | La fecha correcta encaja mejor que la del día anterior y la del siguiente | Parcial |
 | CLS-1 | Máscara SCL aplicada a la detección | Píxeles de agua o nube en SCL nunca son quemado ni foco | Pendiente |
 | SEV-1 | Severidad dNBR con clases USGS y ha por clase | Par sintético antes/después → clases esperadas | Pendiente |
-| SEV-2 | Elección automática de la imagen anterior al incendio | La más reciente con pocas nubes sobre el bbox | Pendiente |
+| SEV-2 | Elección automática de la imagen anterior al incendio | La más reciente con pocas nubes sobre el bbox | ✅ en `pipeline/` (composición píxel a píxel de 30 días) |
+| PIX-1 | `pipeline/grid.lonlat_to_image_pixel` en Web Mercator | El punto medio en Mercator cae en la fila central (Madrid-Ávila: 3070,5, no 3062,7) | ✅ |
+| EFF-1 | Inicio del incendio desde EFFIS (`libs/effis.find_fire_start`) | El incendio que toca el bbox, en UTC; con varios, el más temprano; sin ninguno → `FireStartNotFoundError` | ✅ |
+| ANA-1 | Endpoint `POST /api/analysis` (6.2) | Construye el `SceneInput` correcto; la segunda subida de la misma foto sale de caché; sin incendio en EFFIS → 422 | ✅ |
+| CAC-1 | Caché en disco (6.3) | Un resultado guardado se reutiliza hasta que se borra la carpeta | ✅ |
 
-### ⚠️ Aviso para quien consume `POST /api/georeference` (área, hectáreas, perímetro)
+### 6.1 ⚠️ Aviso para quien consume `POST /api/georeference` (área, hectáreas, perímetro)
 
 Respuesta (ejemplo Niebla):
 
@@ -239,6 +287,7 @@ Respuesta (ejemplo Niebla):
   "date": "2026-08-08",
   "bbox": [-6.84116, 37.39951, -6.47896, 37.57728],
   "image_size": [2500, 1546],
+  "country_code": "es",
   "centre_lon": -6.66006,
   "centre_lat": 37.48845,
   "metres_per_px": 12.8,
@@ -256,6 +305,7 @@ Respuesta (ejemplo Niebla):
     1. Convertir el bbox a EPSG:3857.
     2. Interpolar linealmente en metros Mercator.
     3. Volver a lon/lat.
+  - `pipeline/grid.lonlat_to_image_pixel` ya lo hace así (PIX-1).
   - Si se interpola la latitud linealmente:
 
     | Escena | Error máximo |
@@ -266,12 +316,93 @@ Respuesta (ejemplo Niebla):
 - **`metres_per_px` es el valor en el centro de la imagen.**
   - En Mercator el tamaño real del píxel cambia con la latitud: un 0,24 % de norte a sur en Niebla y un **1 %** en Madrid-Ávila.
   - Multiplicar píxeles por `metres_per_px²` da un error de ese orden en las hectáreas.
-- **Para hectáreas exactas, usar el GeoTIFF de Copernicus en UTM** (`backend/libs/copernicus/process.py`, `fetch_bands` con el `bbox` de la respuesta):
-  - cada píxel mide exactamente `resolution_m × resolution_m` (a 20 m, **0,04 ha por píxel**);
-  - el `transform` da las coordenadas UTM de cada píxel.
+- **Para hectáreas exactas, no contar píxeles de la foto:**
+  - `/api/analysis` devuelve las hectáreas calculadas por `pipeline/` sobre los polígonos, con **área geodésica**, que es la cifra oficial;
+  - `fetch_bands` (`backend/libs/copernicus/process.py`) da las bandas en una cuadrícula **UTM**, donde cada píxel mide exactamente `resolution_m × resolution_m` (a 20 m, **0,04 ha por píxel**).
 - **`date`**: fecha de toma (`YYYY-MM-DD`) leída del nombre del archivo. Una exportación de varios días se rechaza con 422 `multi_day_export`.
 - **`image_size`**: `(ancho, alto)` de la imagen original. Sirve para dibujar el perímetro en píxeles encima de la foto.
 - **El incendio puede salirse del bbox de la foto.** En Niebla, el 13-08 ya excedía el encuadre del 08-08. Para la evolución diaria hay que analizar una zona mayor que la foto.
+
+### 6.2 `POST /api/analysis`: de una foto al análisis del incendio
+
+**Entrada** (multipart): `image` (JPG del Copernicus Browser, con su nombre original) y `place` (texto libre, por ejemplo `Niebla (Huelva)`).
+
+**Pasos** (`backend/api/analysis.py`):
+1. **Georreferenciación** (`georeference_image`, la misma que `/api/georeference`): fecha, bbox, `image_size` y `country_code`.
+2. **Inicio del incendio** (`libs/effis.find_fire_start`):
+   - lista los incendios de EFFIS del país que empezaron en los 30 días previos a la foto (`CONFIG.pre_fire_window_days`);
+   - se queda con los que tocan el bbox y devuelve el inicio **más temprano en UTC**;
+   - EFFIS da las fechas en hora local: el 07-08 a las 01:28 (+02:00) de Niebla es el 06-08 a las 23:28 UTC.
+3. **`SceneInput`**: bbox, `acquisition_date`, `fire_start` (fecha UTC) e `image_size`. Con eso se ejecuta `pipeline.pipeline.analyze`.
+
+**Respuesta** (`AnalysisResult`):
+
+```json
+{
+  "georeference": { "date": "2026-08-08", "bbox": [...], "image_size": [2500, 1546], "country_code": "es", ... },
+  "fire_start": "2026-08-06T23:28:00Z",
+  "analysis": { "scene": {...}, "burned_area": {...}, "active_fires": [...], "active_front_km": 12.9, "geojson": {...} }
+}
+```
+
+**Errores** (422, con `detail`):
+
+| Código | Causa |
+|---|---|
+| `invalid_image` | El archivo no es una imagen |
+| `multi_day_export` | La exportación cubre varios días |
+| `place_not_found` | Nominatim no encuentra el lugar |
+| `georeference_failed` | La foto no encaja con el mapa de referencia |
+| `fire_start_not_found` | Ningún incendio de EFFIS toca la zona en los 30 días previos |
+
+**Tiempos y cuota medidos** (15-10-2026, sin caché):
+
+| Escena | Total | Peticiones a la Process API | PU | Resultado |
+|---|---|---|---|---|
+| Niebla | 115 s | 4 | 120 | 5.160 ha, 118 km de perímetro, 31 focos, 12,9 km de frente |
+| La Mierla | 173 s | 16 | 564 | 29.593 ha, 381 km de perímetro, 76 focos, 14,8 km de frente |
+
+- **Desglose:** la georreferenciación tarda 1-2 min (descarga del mosaico EOX), EFFIS ~25 s y el resto es la descarga de Copernicus.
+- **Madrid-Ávila** no está medido; Iván estimó unos 7 min y será bastante más caro en PU.
+
+**Limitaciones conocidas:**
+- **La descarga de teselas EOX no reintenta.** Un corte de red ("peer closed connection") hace fallar la localización (pasó una vez con La Mierla) y hay que repetir la petición. El pipeline sí reintenta.
+- **La petición es síncrona durante minutos.** Para la web hará falta lanzarla en segundo plano.
+
+### 6.3 Caché y demo
+
+Todo vive en **`backend/data/cache/`** (`libs/cache.py`, `CACHE_DIR`):
+- ignorada por git;
+- en producción, volumen de Docker `backend_cache` montado en `/app/data/cache`;
+- en desarrollo, la carpeta local, porque se monta `./backend`.
+
+| Carpeta | Qué guarda | Clave | Tamaño (Niebla + La Mierla) |
+|---|---|---|---|
+| `georeference/` | `GeoreferencedImage` de cada foto | sha256 de bytes de la imagen + nombre del archivo + lugar | 6 KB |
+| `copernicus/` | Rásteres de Sentinel-2 del pipeline (`.npy`) | sha1 de cuadrícula + evalscript + fechas | 208 MB |
+| `analysis/` | `AnalysisResult` completo | sha256 de bytes de la imagen + nombre del archivo + lugar | 1 MB |
+
+**Comportamiento** (comprobado con Niebla):
+
+| Situación | Tiempo | PU |
+|---|---|---|
+| Foto ya analizada | **< 1 s** | 0 |
+| Borrada solo `analysis/` | **24 s** (solo EFFIS; bandas desde la caché) | 0 |
+| Borrado todo (foto nueva) | 2-3 min | 120-560 |
+
+**Demo:**
+- **Ya cacheadas** en la máquina de desarrollo: Niebla y La Mierla.
+- **Madrid-Ávila se deja sin cachear** para enseñar en directo qué pasa con una foto nueva.
+- **En el servidor de producción** el volumen empieza vacío: hay que subir allí las dos fotos una vez antes de la demo.
+
+**Para comprobar que el algoritmo funciona desde cero:**
+
+```bash
+rm -rf backend/data/cache            # todo: vuelve a localizar, consultar EFFIS y descargar (gasta cuota)
+rm -rf backend/data/cache/analysis   # solo los análisis: reutiliza las bandas ya descargadas, sin cuota
+```
+
+En los tests la caché se redirige a una carpeta temporal (`tests/conftest.py`), así que nunca leen ni escriben la real.
 
 ---
 
@@ -300,7 +431,7 @@ Cada incendio tiene **una pestaña** con todo su historial.
 | INC-5 | Cambios entre días | Dos perímetros sintéticos → ha nuevas exactas y sector correcto |
 | INC-6 | Focos FIRMS históricos asignados al día correcto | Respuesta grabada; UTC frente a hora local |
 | INC-7 | Informe final consolidado | dNBR entre la imagen anterior y la última |
-| INC-8 | Inicio estimado como intervalo (`backend/libs/fire/onset.py`, `onset_search.py`) | Intervalo entre la última pasada sin cicatriz y la primera con ella; salta pasadas nubladas e ignora cambios pequeños fuera de la cicatriz. **⏸ Aparcado**: un falso "quemado" por nubes no detectadas (Niebla 03-08) adelanta el inicio; falta usar la última pasada sin cicatriz. No está conectado a ningún endpoint. Coste: ~19 PU y ~1 min por incendio |
+| INC-8 | Inicio estimado como intervalo (`backend/libs/fire/onset.py`, `onset_search.py`), con las piezas de `pipeline/` (`Bands`, `dnbr`, `observable`, `detect_burned`) | Intervalo entre la última pasada sin cicatriz y la primera con ella; salta pasadas nubladas e ignora cambios pequeños fuera de la cicatriz. **⏸ Aparcado**: un falso "quemado" por nubes no detectadas (Niebla 03-08) adelanta el inicio; falta usar la última pasada sin cicatriz. No está conectado a ningún endpoint: `/api/analysis` usa EFFIS (EFF-1). Servirá para incendios que no estén en EFFIS |
 
 ---
 

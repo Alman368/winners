@@ -1,6 +1,5 @@
 import asyncio
 import hashlib
-import os
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -9,15 +8,15 @@ import numpy as np
 from numpy.typing import NDArray
 from rasterio.io import MemoryFile
 
+from libs import cache
+from libs.copernicus.auth import fetch_token
+from libs.copernicus.credentials import copernicus_credentials
 from pipeline.bands import Bands, PreFireComposite
 from pipeline.config import CONFIG
 from pipeline.grid import Grid
 
-TOKEN_URL: str = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
 PROCESS_URL: str = "https://sh.dataspace.copernicus.eu/api/v1/process"
-CDSE_CLIENT_ID: str = os.environ["CDSE_CLIENT_ID"]
-CDSE_CLIENT_SECRET: str = os.environ["CDSE_CLIENT_SECRET"]
-CACHE_DIR: Path = Path(__file__).resolve().parent.parent / ".cache" / "copernicus"
+CACHE_DIR: Path = cache.CACHE_DIR / "copernicus"
 
 BANDS_EVALSCRIPT: str = """//VERSION=3
 function setup() {
@@ -53,15 +52,6 @@ function evaluatePixel(samples, scenes) {
 }"""
 
 
-async def _token(client: httpx.AsyncClient) -> str:
-    response = await client.post(
-        TOKEN_URL,
-        data={"grant_type": "client_credentials", "client_id": CDSE_CLIENT_ID, "client_secret": CDSE_CLIENT_SECRET},
-    )
-    response.raise_for_status()
-    return response.json()["access_token"]
-
-
 def _process_request(
     bbox: tuple[float, float, float, float], width: int, height: int, evalscript: str, start: date, end: date
 ) -> dict[str, object]:
@@ -81,11 +71,18 @@ def _process_request(
     }
 
 
+def _token() -> str:
+    """Shared Copernicus token (`libs/copernicus/auth.py`), with the same credentials as the rest of the backend."""
+    credentials = copernicus_credentials()
+    with httpx.Client(timeout=60) as client:
+        return fetch_token(client, credentials.client_id, credentials.client_secret)
+
+
 async def _fetch_tile(client: httpx.AsyncClient, semaphore: asyncio.Semaphore, request: dict[str, object]) -> NDArray[np.uint16]:
     async with semaphore:
         for attempt in range(CONFIG.download_retries):
             try:
-                token = await _token(client)
+                token = await asyncio.to_thread(_token)
                 response = await client.post(PROCESS_URL, json=request, headers={"Authorization": f"Bearer {token}"})
                 if response.status_code == 200:
                     with MemoryFile(response.content) as file, file.open() as dataset:

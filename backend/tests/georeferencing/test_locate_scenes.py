@@ -58,3 +58,4 @@ def test_locates_challenge_scene_from_its_place_name(
 
     assert distance_m(location.centre_lon, location.centre_lat, centre_lon, centre_lat) < 500
     assert location.metres_per_px == pytest.approx(metres_per_px, rel=0.03)
+    assert location.country_code == "es"

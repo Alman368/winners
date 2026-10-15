@@ -3,6 +3,8 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from pipeline.models import FireAnalysis
+
 
 class ActiveFire(BaseModel):
     x: float
@@ -68,7 +70,15 @@ class GeoreferencedImage(BaseModel):
     date: date
     bbox: tuple[float, float, float, float]
     image_size: tuple[int, int]
+    country_code: str
     centre_lon: float
     centre_lat: float
     metres_per_px: float
     inliers: int
+
+
+class AnalysisResult(BaseModel):
+    georeference: GeoreferencedImage
+    fire_start: datetime
+    """Earliest EFFIS fire start (UTC) inside the scene."""
+    analysis: FireAnalysis

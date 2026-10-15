@@ -15,10 +15,14 @@ def dnbr(pre: Bands, post: Bands) -> NDArray[np.float32]:
     return nbr(pre) - nbr(post)
 
 
+def observable(bands: Bands) -> NDArray[np.bool_]:
+    """Pixels with a valid, cloud-free, non-water observation."""
+    return bands.valid & ~np.isin(bands.scl, CONFIG.excluded_scl_classes)
+
+
 def assessable(pre: Bands, post: Bands) -> NDArray[np.bool_]:
     """Pixels with valid, cloud-free, non-water observations on both dates."""
-    excluded = np.isin(pre.scl, CONFIG.excluded_scl_classes) | np.isin(post.scl, CONFIG.excluded_scl_classes)
-    return pre.valid & post.valid & ~excluded
+    return observable(pre) & observable(post)
 
 
 def hot_pixels(bands: Bands) -> NDArray[np.bool_]:

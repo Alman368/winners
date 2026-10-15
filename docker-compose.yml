@@ -12,6 +12,8 @@ services:
         max-file: "3"
     environment:
       - ENV=production
+    volumes:
+      - backend_cache:/app/data/cache
     healthcheck:
       test:
         - CMD
@@ -68,3 +70,6 @@ networks:
     driver: bridge
   edge:
     external: true
+
+volumes:
+  backend_cache:

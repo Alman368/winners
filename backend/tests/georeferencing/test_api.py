@@ -44,6 +44,7 @@ def test_georeferences_an_uploaded_scene(replay_api: TestClient) -> None:
     body = response.json()
     assert body["date"] == "2026-08-08"
     assert body["image_size"] == [2500, 1546]
+    assert body["country_code"] == "es"
     assert body["bbox"] == pytest.approx([-6.84125, 37.39963, -6.47903, 37.57739], abs=0.0005)
     assert body["centre_lat"] == pytest.approx(37.4885, abs=0.005)
     assert body["centre_lon"] == pytest.approx(-6.6601, abs=0.005)

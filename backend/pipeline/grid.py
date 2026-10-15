@@ -3,6 +3,7 @@ from math import cos, radians
 
 from affine import Affine
 
+from libs.georeferencing.mercator import to_mercator
 from pipeline.config import CONFIG
 
 METERS_PER_DEGREE_LAT: float = 110_950.0
@@ -13,7 +14,7 @@ METERS_PER_DEGREE_LON_EQUATOR: float = 111_320.0
 class Grid:
     """Working grid: the scene bbox in EPSG:4326 sampled at about CONFIG.resolution_m per pixel.
 
-    The input image uses a grid linear in lon/lat over the same bbox, so both convert with a linear map.
+    The input image covers the same bbox in Web Mercator; `lonlat_to_image_pixel` converts between both.
     """
 
     bbox: tuple[float, float, float, float]
@@ -49,6 +50,10 @@ class Grid:
 def lonlat_to_image_pixel(
     lon: float, lat: float, bbox: tuple[float, float, float, float], image_size: tuple[int, int]
 ) -> tuple[float, float]:
+    """Copernicus Browser exports are Web Mercator: columns are linear in longitude, rows in Mercator y, not latitude."""
     min_lon, min_lat, max_lon, max_lat = bbox
     width, height = image_size
-    return (lon - min_lon) / (max_lon - min_lon) * width, (max_lat - lat) / (max_lat - min_lat) * height
+    west, south = to_mercator(min_lon, min_lat)
+    east, north = to_mercator(max_lon, max_lat)
+    x, y = to_mercator(lon, lat)
+    return (x - west) / (east - west) * width, (north - y) / (north - south) * height

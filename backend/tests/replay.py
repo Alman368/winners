@@ -19,7 +19,7 @@ def shrink(content: bytes) -> bytes:
 
 
 class ReplayTransport(httpx.BaseTransport):
-    """Serves recorded responses; set RECORD_HTTP=1 to record them from the real services."""
+    """Serves recorded responses; with RECORD_HTTP=1, requests without a recording are fetched from the real service and saved."""
 
     def __init__(self) -> None:
         self.record = os.environ.get("RECORD_HTTP") == "1"
@@ -27,7 +27,7 @@ class ReplayTransport(httpx.BaseTransport):
 
     def handle_request(self, request: httpx.Request) -> httpx.Response:
         path = RECORDINGS_DIR / hashlib.sha256(str(request.url).encode()).hexdigest()
-        if self.record:
+        if self.record and not path.exists():
             response = self.network.handle_request(request)
             response.read()
             assert response.status_code == 200, f"{response.status_code} recording {request.url}"

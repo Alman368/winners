@@ -29,7 +29,7 @@ El módulo de localización nos entrega, por escena:
 | `image_size` | `tuple[int, int]` | `(width, height)` en px de la imagen original, para devolver también coordenadas de imagen |
 | `fire_start` | `date` | Fecha de inicio del incendio `YYYY-MM-DD`. Sale de EFFIS (`fire_date`); si el incendio no está en EFFIS, del primer foco de NASA FIRMS dentro del bbox. Define la ventana de la imagen anterior (§4.3) |
 
-Además tenemos acceso a **Copernicus Data Space Ecosystem (CDSE)** con credenciales OAuth (variables de entorno `CDSE_CLIENT_ID` y `CDSE_CLIENT_SECRET` en `backend/.env`), y desde ahí descargamos las bandas originales.
+Además tenemos acceso a **Copernicus Data Space Ecosystem (CDSE)** con credenciales OAuth (variables de entorno `COPERNICUS_CLIENT_ID` y `COPERNICUS_CLIENT_SECRET` en `backend/.env`), y desde ahí descargamos las bandas originales.
 
 La rejilla de la imagen original es lineal en lon/lat (EPSG:4326), así que `lon/lat → píxel de imagen` es una interpolación lineal sobre el bbox.
 
@@ -308,7 +308,7 @@ backend/pipeline/
 
 - Python 3.13 (el del backend) con tipos (built-ins: `list[int]`, `dict[str, float]`…).
 - Dependencias, las del backend más `pyproj`: `numpy`, `scipy`, `rasterio`, `shapely`, `httpx`, `pydantic`.
-- Credenciales en variables de entorno `CDSE_CLIENT_ID` y `CDSE_CLIENT_SECRET` (`backend/.env`, ver `.env.example`).
+- Credenciales en variables de entorno `COPERNICUS_CLIENT_ID` y `COPERNICUS_CLIENT_SECRET` (`backend/.env`, ver `.env.example`).
 - **Pipeline puro**: las funciones de detección reciben arrays y devuelven arrays/resultados tipados. Solo `copernicus.py` habla con la red.
 - Orden de ejecución: descarga posterior y composición previa (en paralelo) → píxeles evaluables → dNBR → área quemada → fuego activo → vectorización → estadísticas.
 - **Pendiente de implementar:** humo (§5.4), unión de polígonos cercanos para el perímetro (§7.5) y tests (§10.5).
