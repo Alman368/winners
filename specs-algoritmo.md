@@ -169,7 +169,7 @@ Ojo: la SCL puede clasificar el humo denso como nube. Se trata en §5.4.
 
 1. **Semillas:** `dNBR > 0.27` (umbral de severidad moderada-baja de Key & Benson, 2006; ver §5.5). Son píxeles quemados con alta seguridad.
 2. **Crecimiento por histéresis:** añadir los píxeles conectados a una semilla con `dNBR > 0.1` (límite inferior de "quemado, severidad baja" de la misma tabla). Esto recoge los bordes del incendio sin aceptar píxeles débiles aislados. En la exploración con JPG la histéresis crecía hacia vegetación sana, pero allí el índice estaba sesgado por el humo y el estirado; con dNBR sobre reflectancias hay que volver a medirla.
-3. **Limpieza:** apertura de radio 1 px (20 m), **cierre de 40 m** (une manchas separadas por 1–2 px; añade un 3–4 % de área) y descarte de componentes de menos de una **superficie mínima en hectáreas** (`config.py`, valor inicial 5 ha, a ajustar con la validación). Sin cierres más grandes: rellenan bahías de vegetación sana (§3). Rellenar los **agujeros de menos de una superficie mínima** (`config.py`, valor inicial 1 ha): en Niebla salen 709 agujeros, casi todos de unos pocos píxeles, que no son islas reales.
+3. **Limpieza:** apertura de radio 1 px (20 m), **cierre de 40 m** (las dos sobre la máscara extendida con su propio borde: si no, scipy trata el exterior de la imagen como no quemado y borra lo quemado que toca el borde) (une manchas separadas por 1–2 px; añade un 3–4 % de área) y descarte de componentes de menos de una **superficie mínima en hectáreas** (`config.py`, valor inicial 5 ha, a ajustar con la validación). Sin cierres más grandes: rellenan bahías de vegetación sana (§3). Rellenar los **agujeros de menos de una superficie mínima** (`config.py`, valor inicial 1 ha): en Niebla salen 709 agujeros, casi todos de unos pocos píxeles, que no son islas reales.
 4. **Frente activo:** los píxeles de fuego activo tienen B12 muy alto, así que su NBR es muy negativo y su dNBR alto. Ya quedan dentro de la máscara sin ningún paso extra. Comprobarlo en la validación.
 5. **Cambios que no son incendio:** una cosecha o un desbroce entre las dos fechas también sube el dNBR. Se controla con el tamaño mínimo y con la forma (las parcelas son rectangulares y aisladas). Si aparecen en la validación, medir un filtro de forma, pero no añadirlo antes.
 
@@ -326,7 +326,7 @@ Un único resultado tipado (modelo pydantic `FireAnalysis` en `models.py`) que s
 
 ## 9. Estructura del código
 
-Implementado en `backend/pipeline/` (rama `algorithm`, sobre el backend de `feature/backend-fire-data`):
+Implementado en `backend/pipeline/` (en `main`):
 
 ```
 backend/pipeline/
@@ -350,7 +350,7 @@ backend/pipeline/
 - Credenciales en variables de entorno `COPERNICUS_CLIENT_ID` y `COPERNICUS_CLIENT_SECRET` (`backend/.env`, ver `.env.example`).
 - **Pipeline puro**: las funciones de detección reciben arrays y devuelven arrays/resultados tipados. Solo `copernicus.py` habla con la red.
 - Orden de ejecución: descarga posterior y composición previa (en paralelo) → píxeles evaluables → dNBR → área quemada → fuego activo → vectorización → estadísticas.
-- **Pendiente de implementar:** tests (§10.5).
+- **Pendiente de implementar:** tests de calidad por escena (§10.5). Hay tests del borde de la imagen y del cierre (`tests/pipeline/test_burned_area.py`) y del análisis en segundo plano (`tests/test_analysis_api.py`).
 
 ---
 

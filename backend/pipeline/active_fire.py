@@ -55,7 +55,7 @@ def detect_fires(
     """
     cluster_radius = max(1, round(CONFIG.fire_cluster_distance_m / 2 / CONFIG.resolution_m))
     grouped = ndimage.binary_dilation(post_hot, structure=SQUARE, iterations=cluster_radius)
-    labels, count = ndimage.label(grouped, structure=SQUARE)
+    labels, _ = ndimage.label(grouped, structure=SQUARE)
     labels = np.where(post_hot, labels, 0)
 
     near_burned = ndimage.distance_transform_edt(~burned) * CONFIG.resolution_m <= CONFIG.fire_context_distance_m

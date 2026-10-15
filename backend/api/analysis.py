@@ -22,7 +22,11 @@ from pipeline.pipeline import analyze
 router: APIRouter = APIRouter(prefix="/analysis", tags=["analysis"])
 
 EFFIS_TIMEOUT_S: int = 180
-DEMO_SCENES_DIR: Path = Path(__file__).resolve().parents[1] / "pipeline" / "scenes"
+PIPELINE_DIR: Path = Path(__file__).resolve().parents[1] / "pipeline"
+DEMO_SCENES_DIR: Path = PIPELINE_DIR / "scenes"
+PIPELINE_SOURCE: str = cache.cache_key(*(path.read_bytes() for path in sorted(PIPELINE_DIR.glob("*.py"))))
+"""Fingerprint of the algorithm code. It is part of every analysis cache key, so any change to the pipeline (results
+or output schema) computes new analyses instead of serving ones made by older code."""
 
 _scene_analyses: dict[str, asyncio.Task[FireAnalysis]] = {}
 
@@ -90,7 +94,7 @@ async def analyze_upload(
     content = await image.read()
     result = await cache.cached(
         cache.CACHE_DIR / "analysis",
-        cache.cache_key(content, image.filename, place),
+        cache.cache_key(content, image.filename, place, PIPELINE_SOURCE),
         AnalysisResult,
         lambda: _analyze_image(client, content, image.filename, place),
     )
@@ -109,7 +113,7 @@ async def analyze_demo_scene(scene_id: str, response: Response) -> FireAnalysis 
     scene_file = DEMO_SCENES_DIR / f"{scene_id}.json"
     if not scene_file.exists():
         raise HTTPException(status_code=404, detail="scene_not_found")
-    key = cache.cache_key(scene_file.read_bytes())
+    key = cache.cache_key(scene_file.read_bytes(), PIPELINE_SOURCE)
     task = _scene_analyses.get(key)
     if task is None:
         stored = cache.load(cache.CACHE_DIR / "analysis-scenes", key, FireAnalysis)
