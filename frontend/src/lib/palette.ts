@@ -8,4 +8,11 @@ export const palette = {
   orange9: '#f76b15',
   water: '#0090ff',
   sky9: '#7ce2fe',
+  viridisYellow: '#fde725',
+  viridisTeal: '#21918c',
+  viridisBlue: '#3b528b',
+  viridisPurple: '#440154',
+  okabeVermillion: '#d55e00',
+  okabeSkyBlue: '#56b4e9',
+  okabeBlue: '#0072b2',
 } as const

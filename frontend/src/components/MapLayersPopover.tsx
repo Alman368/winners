@@ -5,16 +5,17 @@ import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverDescription, PopoverHeader, PopoverTitle, PopoverTrigger } from '@/components/ui/popover'
 import { Switch } from '@/components/ui/switch'
 import { t } from '@/i18n'
-import { layerSymbols } from '@/lib/fireReport'
+import type { LayerSymbols } from '@/lib/fireReport'
 import type { MapLayerId } from '@/types/fireReport'
 
 type MapLayersPopoverProps = {
   layers: MapLayerId[]
+  symbols: LayerSymbols
   visibleLayers: Record<MapLayerId, boolean>
   onLayerVisibleChange: (layer: MapLayerId, visible: boolean) => void
 }
 
-export function MapLayersPopover({ layers, visibleLayers, onLayerVisibleChange }: MapLayersPopoverProps) {
+export function MapLayersPopover({ layers, symbols, visibleLayers, onLayerVisibleChange }: MapLayersPopoverProps) {
   const activeCount = layers.filter((layer) => visibleLayers[layer]).length
 
   return (
@@ -35,7 +36,7 @@ export function MapLayersPopover({ layers, visibleLayers, onLayerVisibleChange }
           {layers.map((layer) => (
             <li key={layer}>
               <label className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 hover:bg-muted">
-                <LegendSymbolMark symbol={layerSymbols[layer].symbol} colors={layerSymbols[layer].colors} />
+                <LegendSymbolMark symbol={symbols[layer].symbol} colors={symbols[layer].colors} />
                 <span className="flex-1">{t.map.layerNames[layer]}</span>
                 <Switch
                   size="sm"

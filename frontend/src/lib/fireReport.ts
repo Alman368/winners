@@ -1,6 +1,7 @@
 import type { FeatureCollection, Geometry, MultiLineString } from 'geojson'
 
 import { t } from '@/i18n'
+import type { ColorMode } from '@/lib/accessibility'
 import { palette } from '@/lib/palette'
 import type { AffectedRoad, Weather } from '@/types/analysis'
 import type { FireReport, LngLat, MapLayerId, SeverityClass } from '@/types/fireReport'
@@ -49,30 +50,54 @@ const MIN_NEARBY_POPULATION = 500
 const LISTED_ROADS = 3
 const COMPASS_SECTOR_DEG = 360 / t.weather.directions.length
 
-export const severityColors: Record<Exclude<SeverityClass, 'sin_quemar'>, string> = {
-  baja: palette.amber9,
-  moderada_baja: palette.orange9,
-  moderada_alta: palette.pink11,
-  alta: palette.purple11,
+export type MapColors = {
+  severity: Record<Exclude<SeverityClass, 'sin_quemar'>, string>
+  burned: string
+  fire: string
+  roads: string
+  town: string
+  reservoirs: string
+  official: string
 }
 
-export const mapColors = {
-  burned: palette.carbon,
-  fire: palette.red9,
-  roads: palette.sky9,
-  town: palette.carbon,
-  reservoirs: palette.water,
-  official: palette.white,
+export type LayerSymbols = Record<MapLayerId, { symbol: LegendSymbol; colors: string[] }>
+
+export const mapColors: Record<ColorMode, MapColors> = {
+  standard: {
+    severity: { baja: palette.amber9, moderada_baja: palette.orange9, moderada_alta: palette.pink11, alta: palette.purple11 },
+    burned: palette.carbon,
+    fire: palette.red9,
+    roads: palette.sky9,
+    town: palette.carbon,
+    reservoirs: palette.water,
+    official: palette.white,
+  },
+  colorblind: {
+    severity: {
+      baja: palette.viridisYellow,
+      moderada_baja: palette.viridisTeal,
+      moderada_alta: palette.viridisBlue,
+      alta: palette.viridisPurple,
+    },
+    burned: palette.carbon,
+    fire: palette.okabeVermillion,
+    roads: palette.okabeSkyBlue,
+    town: palette.carbon,
+    reservoirs: palette.okabeBlue,
+    official: palette.white,
+  },
 }
 
-export const layerSymbols: Record<MapLayerId, { symbol: LegendSymbol; colors: string[] }> = {
-  severity: { symbol: 'ramp', colors: Object.values(severityColors) },
-  burned: { symbol: 'line', colors: [mapColors.burned] },
-  fire: { symbol: 'fire', colors: [mapColors.fire] },
-  roads: { symbol: 'line', colors: [mapColors.roads] },
-  towns: { symbol: 'marker', colors: [mapColors.town] },
-  reservoirs: { symbol: 'fill', colors: [mapColors.reservoirs] },
-  official: { symbol: 'dashed', colors: [mapColors.official] },
+export function buildLayerSymbols(colors: MapColors): LayerSymbols {
+  return {
+    severity: { symbol: 'ramp', colors: Object.values(colors.severity) },
+    burned: { symbol: 'line', colors: [colors.burned] },
+    fire: { symbol: 'fire', colors: [colors.fire] },
+    roads: { symbol: 'line', colors: [colors.roads] },
+    towns: { symbol: 'marker', colors: [colors.town] },
+    reservoirs: { symbol: 'fill', colors: [colors.reservoirs] },
+    official: { symbol: 'dashed', colors: [colors.official] },
+  }
 }
 
 export function formatNumber(value: number, digits = 0): string {
@@ -185,7 +210,13 @@ export function buildFireZones(report: FireReport): FireZone[] {
     })
 }
 
-export function buildLegend(report: FireReport, roads: AffectedRoad[], visibleLayers: Record<MapLayerId, boolean>) {
+export function buildLegend(
+  report: FireReport,
+  roads: AffectedRoad[],
+  visibleLayers: Record<MapLayerId, boolean>,
+  colors: MapColors,
+) {
+  const symbols = buildLayerSymbols(colors)
   const classes = burnedClasses(report)
   const totalHa = classes.reduce((sum, item) => sum + item.areaHa, 0)
   const severity: LegendItem[] = visibleLayers.severity
@@ -194,7 +225,7 @@ export function buildLegend(report: FireReport, roads: AffectedRoad[], visibleLa
         label: t.severity.classes[item.class],
         detail: t.legend.hectares(formatNumber(item.areaHa)),
         symbol: 'fill',
-        colors: [severityColors[item.class]],
+        colors: [colors.severity[item.class]],
         share: item.areaHa / totalHa,
       }))
     : []
@@ -220,8 +251,8 @@ export function buildLegend(report: FireReport, roads: AffectedRoad[], visibleLa
       id: layer,
       label: t.map.layerNames[layer],
       detail: details[layer],
-      symbol: layerSymbols[layer].symbol,
-      colors: layerSymbols[layer].colors,
+      symbol: symbols[layer].symbol,
+      colors: symbols[layer].colors,
       share: null,
     }))
   return { severity, layers }
@@ -234,7 +265,7 @@ function collection(geometries: Geometry[]): FeatureCollection {
   }
 }
 
-export function buildMapData(report: FireReport) {
+export function buildMapData(report: FireReport, colors: MapColors) {
   const lngs = report.scene.corners.map(([lng]) => lng)
   const lats = report.scene.corners.map(([, lat]) => lat)
   return {
@@ -246,7 +277,7 @@ export function buildMapData(report: FireReport) {
       .filter((item) => item.geometry)
       .map((item) => ({
         id: item.class,
-        color: severityColors[item.class],
+        color: colors.severity[item.class],
         data: collection([item.geometry as Geometry]),
       })),
     burned: collection([report.burned.perimeter]),

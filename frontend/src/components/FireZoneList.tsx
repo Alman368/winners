@@ -5,13 +5,14 @@ import type { FireZone } from '@/lib/fireReport'
 
 type FireZoneListProps = {
   zones: FireZone[]
+  markerColor: string
   hiddenCount: number
   isExpanded: boolean
   onToggleExpanded: () => void
   onFocusZone: (zone: FireZone) => void
 }
 
-export function FireZoneList({ zones, hiddenCount, isExpanded, onToggleExpanded, onFocusZone }: FireZoneListProps) {
+export function FireZoneList({ zones, markerColor, hiddenCount, isExpanded, onToggleExpanded, onFocusZone }: FireZoneListProps) {
   return (
     <Card>
       <CardHeader>
@@ -31,7 +32,10 @@ export function FireZoneList({ zones, hiddenCount, isExpanded, onToggleExpanded,
                 className="h-auto w-full justify-start gap-3 py-2 text-left whitespace-normal"
                 onClick={() => onFocusZone(zone)}
               >
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--palette-red-9)] text-xs font-semibold text-white tabular-nums">
+                <span
+                  className="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white tabular-nums"
+                  style={{ backgroundColor: markerColor }}
+                >
                   {zone.rank}
                 </span>
                 <span className="flex min-w-0 flex-col">

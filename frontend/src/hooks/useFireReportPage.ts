@@ -7,6 +7,7 @@ import { fetchBasemapStyle } from '@/api/basemap'
 import { baseFetchObjectUrl } from '@/api/client'
 import { fetchFireReport } from '@/api/fireReports'
 import type { MapViewport } from '@/components/ui/map'
+import { useAccessibilitySettings } from '@/hooks/useAccessibilitySettings'
 import { useFireImport } from '@/hooks/useFireImport'
 import { useOnboardingTour } from '@/hooks/useOnboardingTour'
 import { useRoadTooltip } from '@/hooks/useRoadTooltip'
@@ -16,11 +17,13 @@ import { demoFires, type FireOption } from '@/lib/demoFires'
 import {
   buildFireZones,
   buildKpis,
+  buildLayerSymbols,
   buildLegend,
   buildMapData,
   buildRoadsKpi,
   buildRoadsMapData,
   buildWeatherSummary,
+  mapColors,
 } from '@/lib/fireReport'
 import { formatShortDate, sceneComposites, sceneImageSource } from '@/lib/scenes'
 import type { AnalysisReport, FireContext } from '@/types/analysis'
@@ -118,6 +121,9 @@ export function useFireReportPage() {
   )
   const report = importedFire ? importedFire.report : demoReport
   const context = importedFire ? importedFire.context : demoContext
+  const accessibility = useAccessibilitySettings()
+  const colors = mapColors[accessibility.colorMode]
+  const layerSymbols = useMemo(() => buildLayerSymbols(colors), [colors])
   const view = useMemo(() => {
     if (!report) {
       return null
@@ -126,9 +132,9 @@ export function useFireReportPage() {
       report,
       kpis: buildKpis(report),
       fireZones: buildFireZones(report),
-      mapData: buildMapData(report),
+      mapData: buildMapData(report, colors),
     }
-  }, [report])
+  }, [report, colors])
   const contextView = useMemo(() => {
     if (!context) {
       return null
@@ -160,8 +166,8 @@ export function useFireReportPage() {
   const roadTooltip = useRoadTooltip(context ? context.roads : [])
 
   const legend = useMemo(
-    () => (report ? buildLegend(report, context ? context.roads : [], visibleLayers) : null),
-    [report, context, visibleLayers],
+    () => (report ? buildLegend(report, context ? context.roads : [], visibleLayers, colors) : null),
+    [report, context, visibleLayers, colors],
   )
 
   const fireZones = view ? view.fireZones : []
@@ -213,6 +219,9 @@ export function useFireReportPage() {
     fires: [...demoFires, ...importedFires],
     fireImport,
     tour,
+    accessibility,
+    colors,
+    layerSymbols,
     fireId,
     selectFire,
     composite,

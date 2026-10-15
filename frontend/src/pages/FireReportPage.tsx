@@ -1,7 +1,8 @@
-import { IconLoader2, IconRoute, IconUpload } from '@tabler/icons-react'
+import { IconHelpCircle, IconLoader2, IconUpload } from '@tabler/icons-react'
 
 import compasWordmark from '@/assets/compas-wordmark.svg'
 
+import { AccessibilityPopover } from '@/components/AccessibilityPopover'
 import { FireZoneList } from '@/components/FireZoneList'
 import { CompositeToggle } from '@/components/CompositeToggle'
 import { CurtainToggle } from '@/components/CurtainToggle'
@@ -22,7 +23,6 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { mapLayerOrder, useFireReportPage } from '@/hooks/useFireReportPage'
 import { t } from '@/i18n'
-import { layerSymbols, mapColors } from '@/lib/fireReport'
 import { palette } from '@/lib/palette'
 
 export function FireReportPage() {
@@ -62,7 +62,7 @@ export function FireReportPage() {
                 <MapGeoJSON
                   id="reservoirs"
                   data={view.mapData.reservoirs}
-                  fillPaint={{ 'fill-color': mapColors.reservoirs, 'fill-opacity': 0.7 }}
+                  fillPaint={{ 'fill-color': page.colors.reservoirs, 'fill-opacity': 0.7 }}
                   linePaint={{ 'line-color': palette.white, 'line-width': 1.5 }}
                 />
               )}
@@ -71,7 +71,7 @@ export function FireReportPage() {
                   id="official"
                   data={view.mapData.official}
                   fillPaint={false}
-                  linePaint={{ 'line-color': mapColors.official, 'line-width': 2, 'line-dasharray': [2, 2] }}
+                  linePaint={{ 'line-color': page.colors.official, 'line-width': 2, 'line-dasharray': [2, 2] }}
                 />
               )}
               {page.visibleLayers.burned && (
@@ -79,7 +79,7 @@ export function FireReportPage() {
                   id="burned"
                   data={view.mapData.burned}
                   fillPaint={false}
-                  linePaint={{ 'line-color': mapColors.burned, 'line-width': 2.5 }}
+                  linePaint={{ 'line-color': page.colors.burned, 'line-width': 2.5 }}
                 />
               )}
               {page.visibleLayers.roads && page.context.view && (
@@ -87,7 +87,7 @@ export function FireReportPage() {
                   id="roads"
                   data={page.context.view.roads}
                   fillPaint={false}
-                  linePaint={{ 'line-color': mapColors.roads, 'line-width': 4 }}
+                  linePaint={{ 'line-color': page.colors.roads, 'line-width': 4 }}
                   interactive
                   onHover={page.roadTooltip.onHover}
                 />
@@ -96,7 +96,7 @@ export function FireReportPage() {
                 <MapGeoJSON
                   id="fire"
                   data={view.mapData.fire}
-                  fillPaint={{ 'fill-color': mapColors.fire, 'fill-opacity': 1 }}
+                  fillPaint={{ 'fill-color': page.colors.fire, 'fill-opacity': 1 }}
                   linePaint={{ 'line-color': palette.white, 'line-width': 1.5 }}
                 />
               )}
@@ -104,7 +104,7 @@ export function FireReportPage() {
                 view.mapData.towns.map((town) => (
                   <MapMarker key={town.name} longitude={town.coordinates[0]} latitude={town.coordinates[1]}>
                     <MarkerContent>
-                      <LegendSymbolMark symbol={layerSymbols.towns.symbol} colors={layerSymbols.towns.colors} />
+                      <LegendSymbolMark symbol={page.layerSymbols.towns.symbol} colors={page.layerSymbols.towns.colors} />
                       <MarkerLabel className="rounded bg-card/90 px-1 py-px shadow-sm">{town.name}</MarkerLabel>
                     </MarkerContent>
                   </MapMarker>
@@ -188,6 +188,7 @@ export function FireReportPage() {
                 <div data-tour="layers">
                   <MapLayersPopover
                     layers={mapLayerOrder}
+                    symbols={page.layerSymbols}
                     visibleLayers={page.visibleLayers}
                     onLayerVisibleChange={page.setLayerVisible}
                   />
@@ -223,10 +224,18 @@ export function FireReportPage() {
         <header className="flex flex-col gap-3 border-b bg-card p-4">
           <div className="flex items-center justify-between gap-2">
             <img src={compasWordmark} alt={t.app.logo} className="h-auto w-36 max-w-full object-contain" />
-            <Button variant="ghost" size="sm" disabled={!view} onClick={page.tour.start}>
-              <IconRoute data-icon="inline-start" />
-              {t.tour.start}
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" disabled={!view} onClick={page.tour.start}>
+                <IconHelpCircle data-icon="inline-start" />
+                {t.tour.start}
+              </Button>
+              <AccessibilityPopover
+                textSize={page.accessibility.textSize}
+                onTextSizeChange={page.accessibility.setTextSize}
+                colorMode={page.accessibility.colorMode}
+                onColorModeChange={page.accessibility.setColorMode}
+              />
+            </div>
           </div>
           <div className="flex items-center justify-between gap-2">
             <FireSelector fires={page.fires} value={page.fireId} onChange={page.selectFire} />
@@ -284,6 +293,7 @@ export function FireReportPage() {
                 <div data-tour="fireZones">
                   <FireZoneList
                     zones={page.fireZones.shown}
+                    markerColor={page.colors.fire}
                     hiddenCount={page.fireZones.hiddenCount}
                     isExpanded={page.fireZones.isExpanded}
                     onToggleExpanded={page.fireZones.toggleExpanded}

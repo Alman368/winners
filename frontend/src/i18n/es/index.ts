@@ -8,12 +8,19 @@ export const es = {
     contextRunning: 'Cruzando el incendio con las carreteras y el tiempo. La primera vez puede tardar un minuto.',
     contextError: 'No se han podido calcular las carreteras cortadas ni el tiempo. Recarga la página más tarde.',
   },
+  accessibility: {
+    open: 'Ajustes de accesibilidad',
+    title: 'Accesibilidad',
+    textSize: 'Tamaño del texto',
+    textSizes: { normal: 'Normal', large: 'Grande', extraLarge: 'Muy grande' },
+    colorblind: 'Colores aptos para todo tipo de daltonismo',
+  },
   tour: {
-    start: 'Visita guiada',
+    start: 'Cómo funciona',
     next: 'Siguiente',
     back: 'Anterior',
     finish: 'Terminar',
-    close: 'Cerrar la visita guiada',
+    close: 'Cerrar la guía',
     progress: (step: number, total: number) => `${step} de ${total}`,
     steps: {
       legend: {
@@ -109,7 +116,7 @@ export const es = {
       severity: 'Severidad',
       burned: 'Perímetro quemado',
       fire: 'Fuego activo',
-      roads: 'Carreteras cortadas (estimación)',
+      roads: 'Carreteras cortadas',
       towns: 'Núcleos de población',
       reservoirs: 'Embalses',
       official: 'Perímetro final oficial (EFFIS)',
