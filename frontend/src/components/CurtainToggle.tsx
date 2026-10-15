@@ -7,12 +7,11 @@ import { t } from '@/i18n'
 type CurtainToggleProps = {
   pressed: boolean
   onPressedChange: (pressed: boolean) => void
-  isLocked: boolean
   isLoading: boolean
   isError: boolean
 }
 
-export function CurtainToggle({ pressed, onPressedChange, isLocked, isLoading, isError }: CurtainToggleProps) {
+export function CurtainToggle({ pressed, onPressedChange, isLoading, isError }: CurtainToggleProps) {
   if (isLoading) {
     return <Skeleton aria-label={t.scenes.fireDaysLoading} className="h-7 w-44 rounded-md" />
   }
@@ -30,7 +29,6 @@ export function CurtainToggle({ pressed, onPressedChange, isLocked, isLoading, i
       size="sm"
       pressed={pressed}
       onPressedChange={onPressedChange}
-      disabled={isLocked}
       className="data-[state=on]:bg-foreground data-[state=on]:text-background"
     >
       <IconArrowsLeftRight data-icon="inline-start" />

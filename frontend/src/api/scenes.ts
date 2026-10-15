@@ -1,6 +1,7 @@
-import type { Bbox, SceneComposite } from '@/types/scene'
+import type { Composite } from '@/types/fireReport'
+import type { Bbox } from '@/types/scene'
 
-export function sceneImagePath([west, south, east, north]: Bbox, day: string, composite: SceneComposite): string {
+export function sceneImagePath([west, south, east, north]: Bbox, day: string, composite: Composite): string {
   const params = new URLSearchParams({
     west: String(west),
     south: String(south),

@@ -28,7 +28,6 @@ import {
 import { formatShortDate, sceneComposites, sceneImageSource } from '@/lib/scenes'
 import type { AnalysisReport, FireContext } from '@/types/analysis'
 import type { Composite, FireReport, LngLat, MapLayerId } from '@/types/fireReport'
-import type { SceneComposite } from '@/types/scene'
 
 export const mapLayerOrder: MapLayerId[] = ['severity', 'burned', 'fire', 'roads', 'towns', 'reservoirs', 'official']
 
@@ -147,8 +146,7 @@ export function useFireReportPage() {
   }, [context])
 
   const fireDays = fireDaysQuery.data && !isAnalysisInProgress(fireDaysQuery.data) ? fireDaysQuery.data : undefined
-  const composites = report ? (isCurtainOpen ? sceneComposites : report.scene.composites) : []
-  const isCurtainLocked = !sceneComposites.includes(composite as SceneComposite)
+  const composites = report ? sceneComposites : []
 
   const originalSource = report ? sceneImageSource(report, report.scene.date, composite) : null
   const firstDaySource = report && fireDays && isCurtainOpen ? sceneImageSource(report, fireDays.first, composite) : null
@@ -263,7 +261,6 @@ export function useFireReportPage() {
           }
         : null,
       isAvailable: sceneId !== null,
-      isLocked: isCurtainLocked,
       isLoading: fireDays === undefined && !fireDaysQuery.isError,
       isError: fireDaysQuery.isError,
     },

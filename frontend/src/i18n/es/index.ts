@@ -29,9 +29,9 @@ export const es = {
           'Sobre la imagen del satélite Sentinel-2 dibujamos el perímetro quemado, la severidad del daño y el fuego activo en el momento de la toma. La leyenda dice cuántas hectáreas hay de cada clase.',
       },
       composites: {
-        title: 'Tres formas de ver la imagen',
+        title: 'Dos formas de ver la imagen',
         description:
-          'Color real, como la verías desde un avión; infrarrojo, que atraviesa el humo y separa lo quemado de la vegetación sana; y, cuando existe, realce de fuego, que resalta las llamas.',
+          'Color real, como la verías desde un avión, e infrarrojo, que atraviesa el humo y separa lo quemado de la vegetación sana.',
       },
       curtain: {
         title: 'Antes y después',
@@ -85,7 +85,6 @@ export const es = {
     fireDaysError: 'No se ha podido calcular el inicio del incendio.',
     imageLoading: 'Cargando imagen',
     imageError: 'No se ha podido cargar la imagen.',
-    lockedHint: 'El realce de fuego solo existe para la imagen original. Cambia a color real o infrarrojo para comparar con el inicio del incendio.',
   },
   kpis: {
     title: 'Cifras principales',
@@ -109,7 +108,6 @@ export const es = {
     composites: {
       true_color: 'Color real',
       swir: 'Infrarrojo',
-      wildfires: 'Realce de fuego',
     },
     roadKilometre: (km: string) => `km ${km}`,
     layerNames: {

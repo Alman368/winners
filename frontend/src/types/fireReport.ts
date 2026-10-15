@@ -1,6 +1,6 @@
 import type { MultiPolygon, Polygon } from 'geojson'
 
-export type Composite = 'true_color' | 'swir' | 'wildfires'
+export type Composite = 'true_color' | 'swir'
 
 export type LngLat = [number, number]
 
@@ -13,8 +13,7 @@ export type FireReport = {
   name: string
   scene: {
     date: string
-    composites: Composite[]
-    imageUrls: Partial<Record<Composite, string>>
+    imageUrls: Record<Composite, string>
     corners: [LngLat, LngLat, LngLat, LngLat]
     bbox: [number, number, number, number]
   }

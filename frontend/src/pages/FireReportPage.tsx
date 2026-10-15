@@ -159,7 +159,6 @@ export function FireReportPage() {
                         <CurtainToggle
                           pressed={page.curtain.isOpen}
                           onPressedChange={page.curtain.toggle}
-                          isLocked={page.curtain.isLocked}
                           isLoading={page.curtain.isLoading}
                           isError={page.curtain.isError}
                         />
@@ -173,11 +172,6 @@ export function FireReportPage() {
                     </span>
                   )}
                 </div>
-                {page.curtain.isLocked && (
-                  <p className="pointer-events-auto max-w-sm rounded-lg bg-card/95 px-3 py-2 text-xs text-muted-foreground shadow-sm ring-1 ring-foreground/10">
-                    {t.scenes.lockedHint}
-                  </p>
-                )}
                 {page.isImageError && (
                   <p role="alert" className="pointer-events-auto rounded-lg bg-card/95 px-3 py-2 text-xs text-destructive shadow-sm ring-1 ring-foreground/10">
                     {t.scenes.imageError}

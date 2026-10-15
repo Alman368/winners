@@ -1,5 +1,5 @@
 import { sceneImagePath } from '@/api/scenes'
-import { bboxCorners, sceneComposites } from '@/lib/scenes'
+import { bboxCorners } from '@/lib/scenes'
 import type {
   AnalysisInProgress,
   AnalysisReport,
@@ -68,8 +68,10 @@ export function importedReport(id: string, name: string, imported: AnalysisRepor
     scene: {
       date,
       bbox,
-      composites: sceneComposites,
-      imageUrls: Object.fromEntries(sceneComposites.map((composite) => [composite, sceneImagePath(bbox, date, composite)])),
+      imageUrls: {
+        true_color: sceneImagePath(bbox, date, 'true_color'),
+        swir: sceneImagePath(bbox, date, 'swir'),
+      },
       corners: bboxCorners(bbox),
     },
     ...analysisSections(imported.analysis),
