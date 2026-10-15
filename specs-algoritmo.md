@@ -168,10 +168,11 @@ Ojo: la SCL puede clasificar el humo denso como nube. Se trata en §5.4.
 ### 5.3 Detección
 
 1. **Semillas:** `dNBR > 0.27` (umbral de severidad moderada-baja de Key & Benson, 2006; ver §5.5). Son píxeles quemados con alta seguridad.
-2. **Crecimiento por histéresis:** añadir los píxeles conectados a una semilla con `dNBR > 0.1` (límite inferior de "quemado, severidad baja" de la misma tabla). Esto recoge los bordes del incendio sin aceptar píxeles débiles aislados. En la exploración con JPG la histéresis crecía hacia vegetación sana, pero allí el índice estaba sesgado por el humo y el estirado; con dNBR sobre reflectancias hay que volver a medirla.
-3. **Limpieza:** apertura de radio 1 px (20 m), **cierre de 40 m** (las dos sobre la máscara extendida con su propio borde: si no, scipy trata el exterior de la imagen como no quemado y borra lo quemado que toca el borde) (une manchas separadas por 1–2 px; añade un 3–4 % de área) y descarte de componentes de menos de una **superficie mínima en hectáreas** (`config.py`, valor inicial 5 ha, a ajustar con la validación). Sin cierres más grandes: rellenan bahías de vegetación sana (§3). Rellenar los **agujeros de menos de una superficie mínima** (`config.py`, valor inicial 1 ha): en Niebla salen 709 agujeros, casi todos de unos pocos píxeles, que no son islas reales.
-4. **Frente activo:** los píxeles de fuego activo tienen B12 muy alto, así que su NBR es muy negativo y su dNBR alto. Ya quedan dentro de la máscara sin ningún paso extra. Comprobarlo en la validación.
-5. **Cambios que no son incendio:** una cosecha o un desbroce entre las dos fechas también sube el dNBR. Se controla con el tamaño mínimo y con la forma (las parcelas son rectangulares y aisladas). Si aparecen en la validación, medir un filtro de forma, pero no añadirlo antes.
+2. **Evidencia en el SWIR:** las semillas y el crecimiento solo valen en píxeles con **dNBR2 > 0.05**, y **> 0.10 bajo un velo de humo** (el rojo, `B04`, sube más de 0.02). Un velo de humo fino baja el infrarrojo cercano y sube el dNBR sobre vegetación sana: en el noroeste de Niebla el dNBR daba 0.13 (por encima del 0.10 de crecimiento) con un dNBR2 de solo 0.08, frente a 0.29 y 0.21 en lo quemado. Con esta regla, el área dentro de los perímetros de EFFIS pasa del 93.4 % al 97.7 % (Niebla), del 97.3 % al 98.9 % (La Mierla) y del 96.4 % al 98.7 % (Madrid-Ávila); en La Mierla y Madrid-Ávila, el 70–75 % de lo que quita estaba fuera de EFFIS.
+3. **Crecimiento por histéresis:** añadir los píxeles conectados a una semilla con `dNBR > 0.1` (límite inferior de "quemado, severidad baja" de la misma tabla). Esto recoge los bordes del incendio sin aceptar píxeles débiles aislados. En la exploración con JPG la histéresis crecía hacia vegetación sana, pero allí el índice estaba sesgado por el humo y el estirado; con dNBR sobre reflectancias hay que volver a medirla.
+4. **Limpieza:** apertura de radio 1 px (20 m), **cierre de 40 m** (las dos sobre la máscara extendida con su propio borde: si no, scipy trata el exterior de la imagen como no quemado y borra lo quemado que toca el borde) (une manchas separadas por 1–2 px; añade un 3–4 % de área) y descarte de componentes de menos de una **superficie mínima en hectáreas** (`config.py`, valor inicial 5 ha, a ajustar con la validación). Sin cierres más grandes: rellenan bahías de vegetación sana (§3). Rellenar los **agujeros de menos de una superficie mínima** (`config.py`, valor inicial 1 ha): en Niebla salen 709 agujeros, casi todos de unos pocos píxeles, que no son islas reales.
+5. **Frente activo:** los píxeles de fuego activo tienen B12 muy alto, así que su NBR es muy negativo y su dNBR alto. Ya quedan dentro de la máscara sin ningún paso extra. Comprobarlo en la validación.
+6. **Cambios que no son incendio:** una cosecha o un desbroce entre las dos fechas también sube el dNBR. Se controla con el tamaño mínimo y con la forma (las parcelas son rectangulares y aisladas). Si aparecen en la validación, medir un filtro de forma, pero no añadirlo antes.
 
 ### 5.4 Humo
 
@@ -197,7 +198,7 @@ Implementado en `pipeline/smoke.py`.
 4. **Salida:** `burned_area.under_smoke_ha` (parte del área encontrada bajo humo) y `smoke` (superficie y polígonos de los penachos). Los píxeles de humo ya no cuentan como "no evaluables".
 5. **Limitación:** la severidad se sigue calculando con dNBR, que el humo sesga a la baja; lo quemado bajo humo tiende a salir como severidad baja.
 
-Con el humo, el área total dentro de los perímetros de EFFIS es del 93.2 % (Niebla), 97.1 % (La Mierla) y 96.4 % (Madrid-Ávila).
+Resultado final (con la evidencia en el SWIR de §5.3 y el humo): el área total dentro de los perímetros de EFFIS es del 97.5 % (Niebla, 4784 ha), 98.7 % (La Mierla, 29 874 ha) y 98.6 % (Madrid-Ávila, 52 309 ha).
 
 ### 5.5 Severidad
 
@@ -249,9 +250,10 @@ Sobre la imagen posterior en reflectancia, a 20 m:
 
 1. **Polígonos:** `rasterio.features.shapes` (conectividad 8) sobre la máscara final, que conserva los agujeros (islas no quemadas). Pasar a lon/lat con la transformación de la rejilla (§4.1) y construir un `shapely` `MultiPolygon`.
 2. **Simplificación:** Douglas-Peucker con tolerancia de **20 m** (un píxel), aplicada en coordenadas de píxel antes de pasar a lon/lat (los píxeles de la rejilla son cuadrados en metros). Sin simplificar, el contorno de un ráster infla el perímetro hasta ~×1.27 por el efecto escalera.
-3. **Superficie y perímetro:** cálculo geodésico con `pyproj.Geod` sobre los polígonos simplificados. Superficie en hectáreas y perímetro en km.
-4. **Superficie efectiva:** el área del polígono **sin** los agujeros. El perímetro es el del contorno exterior.
-5. **Perímetro en escenas grandes:** sin más, en Madrid salían 1144 km de perímetro, porque los bordes irregulares y las manchas pequeñas suman mucho. Solución: el cierre de 40 m de §5.3 y **contar en el perímetro solo los polígonos de al menos 50 ha** (`config.py`); los pequeños siguen contando en el área. Medido frente al perímetro de EFFIS (que se dibuja a menor resolución y sale más suave):
+3. **Suavizado del contorno:** antes de simplificar, apertura y cierre redondeados de 20 m (quitan los picos y escalones de un píxel de la rejilla), y después dos pasadas de Chaikin (redondean las esquinas) y una simplificación de 0.25 px para no multiplicar los vértices. Aplicado al área quemada, la severidad y el humo, no a los focos. En Niebla: perímetro de 47.7 a 40.3 km, área +0.6 %, de 602 a 992 vértices.
+4. **Superficie y perímetro:** cálculo geodésico con `pyproj.Geod` sobre los polígonos simplificados. Superficie en hectáreas y perímetro en km.
+5. **Superficie efectiva:** el área del polígono **sin** los agujeros. El perímetro es el del contorno exterior.
+6. **Perímetro en escenas grandes:** sin más, en Madrid salían 1144 km de perímetro, porque los bordes irregulares y las manchas pequeñas suman mucho. Solución: el cierre de 40 m de §5.3 y **contar en el perímetro solo los polígonos de al menos 50 ha** (`config.py`); los pequeños siguen contando en el área. Medido frente al perímetro de EFFIS (que se dibuja a menor resolución y sale más suave):
 
    | Opción | La Mierla | Madrid-Ávila |
    |---|---|---|
@@ -260,7 +262,7 @@ Sobre la imagen posterior en reflectancia, a 20 m:
    | Cierre de 40 m | 262 km | 733 km |
    | Solo polígonos ≥ 50 ha | 313 km | 993 km |
    | **Cierre de 40 m + polígonos ≥ 50 ha** | **242 km** | **661 km** |
-6. **Coordenadas de imagen:** cada vértice también en píxeles de la imagen original, por interpolación lineal con `bbox` e `image_size`.
+7. **Coordenadas de imagen:** cada vértice también en píxeles de la imagen original, por interpolación lineal con `bbox` e `image_size`.
 
 ---
 
@@ -341,8 +343,9 @@ backend/pipeline/
   models.py         Entrada (SceneInput) y salida (FireAnalysis) en pydantic (§2, §8)
   smoke.py          Humo y quemado bajo el humo con dNBR2 (§5.4)
   pipeline.py       Orquestación: entrada → resultado
-  __main__.py       `uv run python -m pipeline pipeline/scenes/niebla.json`
+  __main__.py       `uv run python -m pipeline niebla la_mierla madrid_avila`: calcula y guarda los resultados de las escenas de ejemplo
   scenes/           Entradas de las tres escenas de ejemplo
+  scenes/results/   Resultados ya calculados que sirve `GET /api/analysis/scenes/{scene_id}` (regenerarlos al cambiar el algoritmo)
 ```
 
 - Python 3.13 (el del backend) con tipos (built-ins: `list[int]`, `dict[str, float]`…).

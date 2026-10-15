@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+from pathlib import Path
 from datetime import date, datetime, timezone
 
 import httpx
@@ -104,17 +105,15 @@ def test_rejects_a_scene_without_an_effis_fire(monkeypatch: pytest.MonkeyPatch) 
     assert response.json() == {"detail": "fire_start_not_found"}
 
 
-def test_analyses_an_example_scene_in_the_background_and_then_serves_it_from_the_cache(
-    services: dict[str, list[object]],
-) -> None:
-    with TestClient(app) as client:
-        first = client.get("/analysis/scenes/niebla")
-        responses = [client.get("/analysis/scenes/niebla") for _ in range(50)]
-        ready = next(response for response in responses if response.status_code == 200)
-        again = client.get("/analysis/scenes/niebla")
+def test_serves_the_precomputed_analysis_of_an_example_scene(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    scene = SceneInput(
+        bbox=(-6.84, 37.40, -6.48, 37.58), acquisition_date=date(2026, 8, 8), fire_start=date(2026, 8, 7), image_size=(2500, 1546)
+    )
+    (tmp_path / "niebla.json").write_text(fire_analysis(scene).model_dump_json())
+    monkeypatch.setattr(analysis, "SCENE_RESULTS_DIR", tmp_path)
 
-    assert first.status_code == 202
-    assert first.json() == {"status": "processing"}
-    assert ready.json()["burned_area"]["area_ha"] == 2455.0
-    assert again.status_code == 200
-    assert len(services["pipeline"]) == 1
+    response = TestClient(app).get("/analysis/scenes/niebla")
+
+    assert response.status_code == 200
+    assert response.json()["burned_area"]["area_ha"] == 2455.0
+    assert TestClient(app).get("/analysis/scenes/unknown").status_code == 404

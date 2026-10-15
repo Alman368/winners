@@ -34,6 +34,18 @@ def assessable(pre: Bands, post: Bands) -> NDArray[np.bool_]:
     return observable(pre) & observable(post)
 
 
+def burn_evidence(pre: Bands, post: Bands) -> NDArray[np.bool_]:
+    """Assessable pixels where the SWIR bands also show burning, so dNBR is not raised by smoke alone.
+
+    Everywhere dNBR2 must pass CONFIG.burned_min_dnbr2; under a smoke veil (red reflectance rose), the stricter
+    CONFIG.smoke_dnbr2_grow.
+    """
+    change2 = dnbr2(pre, post)
+    hazy = post.b04 - pre.b04 > CONFIG.haze_min_b04_increase
+    swir_burn = (change2 > CONFIG.burned_min_dnbr2) & (~hazy | (change2 > CONFIG.smoke_dnbr2_grow))
+    return assessable(pre, post) & swir_burn
+
+
 def assessable_through_smoke(pre: Bands, post: Bands) -> NDArray[np.bool_]:
     """Like `assessable`, but also accepts fire-day pixels the SCL marks as cloud: dense smoke falls into those classes."""
     smoke_like = np.isin(post.scl, CONFIG.smoke_hiding_scl_classes)

@@ -4,15 +4,6 @@ export const es = {
     panel: 'Panel del incendio',
     fireSelector: 'Incendio',
     loadError: 'No se ha podido cargar el informe del incendio.',
-    analysisRunning: 'Analizando las imágenes de Copernicus. La primera vez puede tardar unos minutos.',
-  },
-  scenes: {
-    day: 'Fecha de la imagen',
-    compare: 'Comparar con',
-    noCompare: 'Sin comparar',
-    opacity: 'Opacidad de la comparación',
-    dayOption: (date: string, cloud: string) => `${date} · ${cloud} % nubes`,
-    passesError: 'No se han podido cargar las pasadas de Sentinel-2.',
   },
   summary: {
     burned: (date: string, name: string, ha: string) => `A ${date}, el incendio de ${name} había quemado ${ha} ha.`,

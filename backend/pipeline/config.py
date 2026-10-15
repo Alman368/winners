@@ -24,6 +24,14 @@ class Config:
     severity_breaks: tuple[float, float, float] = (0.27, 0.44, 0.66)
     """USGS dNBR class limits between low, moderate-low, moderate-high and high severity (Key & Benson, 2006)."""
 
+    burned_min_dnbr2: float = 0.05
+    """Burned pixels also need dNBR2 (SWIR only) above this. A thin smoke veil lowers NIR, so dNBR alone rises over
+    unburned vegetation (Niebla north-west: dNBR 0.13, dNBR2 0.08; burned core: dNBR 0.29, dNBR2 0.21). In La Mierla
+    and Madrid-Ávila 70-75 % of the area it removes lies outside the EFFIS perimeters."""
+
+    haze_min_b04_increase: float = 0.02
+    """Red reflectance rise that marks a thin smoke veil. Under it, burned pixels need dNBR2 above smoke_dnbr2_grow."""
+
     min_burned_area_ha: float = 5.0
     """Smaller burned components are discarded as noise (harvests, single pixels)."""
 
@@ -76,6 +84,16 @@ class Config:
 
     simplify_tolerance_m: float = 20.0
     """Douglas-Peucker tolerance for polygons, one pixel. Avoids the staircase effect that inflates raster perimeters."""
+
+    outline_smoothing_m: float = 20.0
+    """Radius of the rounded opening and closing applied to burned, severity and smoke outlines. Removes the
+    one-pixel spikes and stair steps of the 20 m grid (Niebla: perimeter 47.7 km to 40.5 km, area +0.6 %)."""
+
+    outline_chaikin_iterations: int = 2
+    """Chaikin corner-cutting passes that round the simplified outlines, so they follow the land instead of the grid."""
+
+    outline_vertex_tolerance_px: float = 0.25
+    """Douglas-Peucker tolerance after Chaikin, in pixels: keeps the rounded shape with far fewer vertices."""
 
     tile_size_px: int = 1000
     """Maximum tile side per Process API request. Bigger tiles returned 502 errors and truncated responses."""

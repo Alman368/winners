@@ -3,7 +3,6 @@ import { IconPhoto, IconStack2 } from '@tabler/icons-react'
 import logo from '@/assets/logo.svg'
 
 import { ChartCard3 } from '@/components/chart-card3'
-import { SceneDayControls } from '@/components/SceneDayControls'
 import { StatsCard1 } from '@/components/stats-card1'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -20,7 +19,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { mapLayerOrder, NO_COMPARE, useFireReportPage } from '@/hooks/useFireReportPage'
+import { mapLayerOrder, useFireReportPage } from '@/hooks/useFireReportPage'
 import { t } from '@/i18n'
 import { formatNumber } from '@/lib/fireReport'
 import { palette } from '@/lib/palette'
@@ -173,33 +172,11 @@ export function FireReportPage() {
               ))}
             </SelectContent>
           </Select>
-          {page.scenes.day && (
-            <SceneDayControls
-              dayOptions={page.scenes.dayOptions}
-              compareOptions={page.scenes.compareOptions}
-              day={page.scenes.day}
-              onDayChange={page.scenes.selectDay}
-              compareDay={page.scenes.compareDay}
-              noCompareValue={NO_COMPARE}
-              onCompareDayChange={page.scenes.selectCompareDay}
-              compareOpacity={page.scenes.compareOpacity}
-              onCompareOpacityChange={page.scenes.setCompareOpacity}
-              isCompareActive={page.scenes.isCompareActive}
-              isLoading={page.scenes.isLoading}
-              isError={page.scenes.isError}
-            />
-          )}
         </header>
 
         <ScrollArea className="min-h-0 flex-1">
           <div className="flex flex-col gap-3 p-4">
             {page.isError && <p role="alert" className="text-sm text-destructive">{t.app.loadError}</p>}
-
-            {page.isAnalysisRunning && (
-              <p role="status" className="text-sm text-muted-foreground">
-                {t.app.analysisRunning}
-              </p>
-            )}
 
             {page.isLoading && (
               <>

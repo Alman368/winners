@@ -20,5 +20,3 @@ export type FireAnalysis = {
 export type AnalysisFeatureKind = 'burned_area' | 'smoke' | 'active_fire'
 
 export type BurnedAreaFeature = Feature<MultiPolygon, { kind: 'burned_area' }>
-
-export type AnalysisInProgress = { status: 'processing' }

@@ -14,7 +14,7 @@ from pipeline.bands import Bands, PreFireComposite
 from pipeline.burned_area import detect_burned, severity_masks
 from pipeline.config import CONFIG
 from pipeline.grid import Grid, lonlat_to_image_pixel
-from pipeline.indices import assessable, assessable_through_smoke, dnbr, dnbr2, hot_pixels
+from pipeline.indices import assessable, assessable_through_smoke, burn_evidence, dnbr, dnbr2, hot_pixels
 from pipeline.models import (
     ActiveFire,
     BurnedArea,
@@ -64,11 +64,12 @@ def _severity(change: NDArray[np.float32], burned_mask: NDArray[np.bool_], grid:
     window_px = round(CONFIG.severity_map_smoothing_m / CONFIG.resolution_m)
     smoothed = severity_masks(ndimage.median_filter(change, size=window_px), burned_mask)
     min_pixels = CONFIG.map_min_patch_ha / grid.pixel_area_ha
+    rounding_px = CONFIG.outline_smoothing_m / CONFIG.resolution_m
     return [
         SeverityClass(
             name=name,
             area_ha=round(float(mask.sum() * grid.pixel_area_ha), 1),
-            geometry=mapping(mask_to_multipolygon(smoothed[name], grid.transform, min_pixels)),
+            geometry=mapping(mask_to_multipolygon(smoothed[name], grid.transform, min_pixels, rounding_px)),
         )
         for name, mask in severity_masks(change, burned_mask).items()
     ]
@@ -113,13 +114,16 @@ async def analyze(scene: SceneInput) -> FireAnalysis:
 def _detect(scene: SceneInput, grid: Grid, post: Bands, pre: PreFireComposite) -> FireAnalysis:
     valid = assessable(pre.bands, post)
     change = dnbr(pre.bands, post)
-    visible_burned = detect_burned(change, valid, grid.pixel_area_ha)
+    visible_burned = detect_burned(change, burn_evidence(pre.bands, post), grid.pixel_area_ha)
     smoke_mask = detect_smoke(pre.bands, post, visible_burned, assessable_through_smoke(pre.bands, post))
     hidden_burned = burned_under_smoke(dnbr2(pre.bands, post), smoke_mask, visible_burned)
     burned_mask = visible_burned | hidden_burned
     clusters = detect_fires(hot_pixels(post), hot_pixels(pre.bands), burned_mask)
 
-    burned = mask_to_multipolygon(burned_mask, grid.transform)
+    rounding_px = CONFIG.outline_smoothing_m / CONFIG.resolution_m
+    burned = mask_to_multipolygon(
+        burned_mask, grid.transform, CONFIG.min_burned_area_ha / grid.pixel_area_ha, rounding_px
+    )
     burned_area = BurnedArea(
         polygons=[
             BurnedPolygon(exterior=_ring(polygon.exterior, scene), holes=[_ring(hole, scene) for hole in polygon.interiors])
@@ -133,7 +137,9 @@ def _detect(scene: SceneInput, grid: Grid, post: Bands, pre: PreFireComposite) -
     fires = [_active_fire(index, cluster, grid, scene) for index, cluster in enumerate(clusters, start=1)]
     smoke = SmokeArea(
         area_ha=round(float(smoke_mask.sum() * grid.pixel_area_ha), 1),
-        geometry=mapping(mask_to_multipolygon(smoke_mask, grid.transform, CONFIG.map_min_patch_ha / grid.pixel_area_ha)),
+        geometry=mapping(
+            mask_to_multipolygon(smoke_mask, grid.transform, CONFIG.map_min_patch_ha / grid.pixel_area_ha, rounding_px)
+        ),
     )
 
     return FireAnalysis(
