@@ -7,6 +7,7 @@ dependencies = [
     "httpx>=0.28,<1",
     "numpy>=2.3,<3",
     "pillow>=11.3,<13",
+    "pyproj>=3.8,<4",
     "python-multipart>=0.0.20,<1",
     "rasterio>=1.4,<2",
     "scipy>=1.16,<2",
