@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 
-from app.georeferencing.mercator import MercatorBox
+from libs.georeferencing.mercator import MercatorBox
 
 QUERY_WIDTH_PX = 1250
 MAX_FEATURES = 8000

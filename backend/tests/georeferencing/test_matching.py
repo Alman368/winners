@@ -2,8 +2,8 @@ import cv2
 import numpy as np
 import pytest
 
-from app.georeferencing.matching import GeoreferenceError, ReferenceImage, match
-from app.georeferencing.mercator import MercatorBox
+from libs.georeferencing.matching import GeoreferenceError, ReferenceImage, match
+from libs.georeferencing.mercator import MercatorBox
 
 
 def landscape(seed: int, size: int) -> np.ndarray:

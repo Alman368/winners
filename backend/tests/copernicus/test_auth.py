@@ -2,7 +2,7 @@ from urllib.parse import parse_qs
 
 import httpx
 
-from app.copernicus.auth import TOKEN_URL, fetch_token
+from libs.copernicus.auth import TOKEN_URL, fetch_token
 
 
 def identity_server(request: httpx.Request) -> httpx.Response:

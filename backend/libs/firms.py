@@ -8,7 +8,6 @@ import httpx
 from models import Hotspot
 
 FIRMS_AREA_URL: str = "https://firms.modaps.eosdis.nasa.gov/api/area/csv"
-FIRMS_MAP_KEY: str = os.environ["FIRMS_MAP_KEY"]
 FIRMS_SOURCES: tuple[str, ...] = (
     "VIIRS_SNPP_NRT",
     "VIIRS_NOAA20_NRT",
@@ -19,11 +18,12 @@ FIRMS_SOURCES: tuple[str, ...] = (
 
 
 async def get_hotspots(bbox: tuple[float, float, float, float], start: date, days: int) -> list[Hotspot]:
+    map_key = os.environ["FIRMS_MAP_KEY"]
     area = ",".join(str(coord) for coord in bbox)
     hotspots: list[Hotspot] = []
     async with httpx.AsyncClient(timeout=60) as client:
         for source in FIRMS_SOURCES:
-            response = await client.get(f"{FIRMS_AREA_URL}/{FIRMS_MAP_KEY}/{source}/{area}/{days}/{start.isoformat()}")
+            response = await client.get(f"{FIRMS_AREA_URL}/{map_key}/{source}/{area}/{days}/{start.isoformat()}")
             response.raise_for_status()
             for row in csv.DictReader(io.StringIO(response.text)):
                 hotspots.append(

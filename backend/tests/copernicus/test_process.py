@@ -7,7 +7,7 @@ import pytest
 from affine import Affine
 from rasterio.io import MemoryFile
 
-from app.copernicus.process import PROCESS_URL, fetch_bands, utm_epsg
+from libs.copernicus.process import PROCESS_URL, fetch_bands, utm_epsg
 
 NIEBLA_BBOX = (-6.8413, 37.3996, -6.4791, 37.5774)
 

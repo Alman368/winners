@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from app.copernicus.browser_export import MultiDayExportError, capture_date
+from libs.copernicus.browser_export import MultiDayExportError, capture_date
 
 
 def test_reads_the_capture_date_from_a_single_day_export_name() -> None:

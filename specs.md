@@ -216,7 +216,7 @@ Las métricas son objetivos iniciales: se fijan tras la primera medición base y
 | GEO-3 | Rechazo si no es fiable | Imagen de otra zona → `GeoreferenceError` | ✅ |
 | GEO-4 | Mosaico de referencia por teselas WMS | Teselas cosidas sin saltos, también en los bordes irregulares | ✅ |
 | GEO-5 | Localizar una escena desde el nombre del lugar (gruesa + fina) | Niebla, La Mierla y Madrid-Ávila: centro a < 500 m y m/px ±3 % | ✅ |
-| GEO-6 | Endpoint `POST /georeference` (imagen + lugar) → `date`, `bbox` (oeste, sur, este, norte), `image_size` (ancho, alto), centro, m/px, inliers | Contrato de la API; archivo no imagen → 422 `invalid_image`; lugar no encontrado → 422 `place_not_found`; no localizable → 422 `georeference_failed` | ✅ |
+| GEO-6 | Endpoint `POST /api/georeference` (imagen + lugar) → `date`, `bbox` (oeste, sur, este, norte), `image_size` (ancho, alto), centro, m/px, inliers | Contrato de la API; archivo no imagen → 422 `invalid_image`; lugar no encontrado → 422 `place_not_found`; no localizable → 422 `georeference_failed` | ✅ |
 | GEO-7 | Robustez a recorte y zoom | Recortes del 30-100 % y escalas de 0,5-2× recuperan el bbox | Pendiente |
 | CDS-1 | OAuth client credentials desde `.env` | Las credenciales se canjean por un `access_token` | ✅ |
 | CDS-2 | Render Process API: bbox + fecha + script (TC, SWIR, Wildfires) | Respuesta grabada → imagen del tamaño pedido | Pendiente |
@@ -227,7 +227,7 @@ Las métricas son objetivos iniciales: se fijan tras la primera medición base y
 | SEV-1 | Severidad dNBR con clases USGS y ha por clase | Par sintético antes/después → clases esperadas | Pendiente |
 | SEV-2 | Elección automática de la imagen anterior al incendio | La más reciente con pocas nubes sobre el bbox | Pendiente |
 
-### ⚠️ Aviso para quien consume `POST /georeference` (área, hectáreas, perímetro)
+### ⚠️ Aviso para quien consume `POST /api/georeference` (área, hectáreas, perímetro)
 
 Respuesta (ejemplo Niebla):
 
@@ -263,7 +263,7 @@ Respuesta (ejemplo Niebla):
 - **`metres_per_px` es el valor en el centro de la imagen.**
   - En Mercator el tamaño real del píxel cambia con la latitud: un 0,24 % de norte a sur en Niebla y un **1 %** en Madrid-Ávila.
   - Multiplicar píxeles por `metres_per_px²` da un error de ese orden en las hectáreas.
-- **Para hectáreas exactas, usar el GeoTIFF de Copernicus en UTM** (`app/copernicus/process.py`, `fetch_bands` con el `bbox` de la respuesta):
+- **Para hectáreas exactas, usar el GeoTIFF de Copernicus en UTM** (`backend/libs/copernicus/process.py`, `fetch_bands` con el `bbox` de la respuesta):
   - cada píxel mide exactamente `resolution_m × resolution_m` (a 20 m, **0,04 ha por píxel**);
   - el `transform` da las coordenadas UTM de cada píxel.
 - **`date`**: fecha de toma (`YYYY-MM-DD`) leída del nombre del archivo. Una exportación de varios días se rechaza con 422 `multi_day_export`.

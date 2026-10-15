@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from pydantic import BaseModel
@@ -62,3 +62,13 @@ class Hotspot(BaseModel):
     confidence: str
     frp_mw: float
     daynight: str
+
+
+class GeoreferencedImage(BaseModel):
+    date: date
+    bbox: tuple[float, float, float, float]
+    image_size: tuple[int, int]
+    centre_lon: float
+    centre_lat: float
+    metres_per_px: float
+    inliers: int

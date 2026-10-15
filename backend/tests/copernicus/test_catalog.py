@@ -4,7 +4,7 @@ from pathlib import Path
 
 import httpx
 
-from app.copernicus.catalog import CATALOG_URL, Acquisition, search_acquisitions
+from libs.copernicus.catalog import CATALOG_URL, Acquisition, search_acquisitions
 
 NIEBLA_BBOX = (-6.8413, 37.3996, -6.4791, 37.5774)
 RECORDED_SEARCH = json.loads((Path(__file__).parent / "fixtures" / "catalog_niebla.json").read_text())

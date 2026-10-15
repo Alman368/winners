@@ -2,8 +2,8 @@ import cv2
 import httpx
 import numpy as np
 
-from app.georeferencing.matching import ReferenceImage
-from app.georeferencing.mercator import MercatorBox
+from libs.georeferencing.matching import ReferenceImage
+from libs.georeferencing.mercator import MercatorBox
 
 WMS_URL = "https://tiles.maps.eox.at/wms"
 LAYER = "s2cloudless-2025_3857"

@@ -2,14 +2,18 @@ from collections.abc import Iterator
 
 import httpx
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.http_client import get_http_client
-from app.main import app
+from api.georeferencing import router
+from libs.http_client import get_http_client
 from tests.replay import ReplayTransport
 from tests.scenes import SCENES_DIR
 
-NIEBLA_TRUE_COLOR = SCENES_DIR / "Niebla (Huelva)/2026-08-08-00_00_2026-08-08-23_59_Sentinel-2_L2A_True_color.jpg"
+app = FastAPI()
+app.include_router(router)
+
+NIEBLA_TRUE_COLOR = SCENES_DIR / "niebla_huelva_2026-08-08/2026-08-08-00_00_2026-08-08-23_59_Sentinel-2_L2A_True_color.jpg"
 
 
 def use_transport(transport: httpx.BaseTransport) -> Iterator[TestClient]:

@@ -4,10 +4,10 @@ from dataclasses import dataclass
 import httpx
 import numpy as np
 
-from app.georeferencing.geocoding import geocode
-from app.georeferencing.matching import match
-from app.georeferencing.mercator import MercatorBox, from_mercator, to_mercator
-from app.georeferencing.reference import fetch_reference
+from libs.georeferencing.geocoding import geocode
+from libs.georeferencing.matching import match
+from libs.georeferencing.mercator import MercatorBox, from_mercator, to_mercator
+from libs.georeferencing.reference import fetch_reference
 
 SEARCH_RADIUS_M = 120_000
 REFERENCE_WIDTH_PX = 4000

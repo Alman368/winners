@@ -1,6 +1,6 @@
 import pytest
 
-from app.georeferencing.mercator import from_mercator, to_mercator
+from libs.georeferencing.mercator import from_mercator, to_mercator
 
 
 @pytest.mark.parametrize(

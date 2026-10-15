@@ -3,8 +3,8 @@ import httpx
 import numpy as np
 import pytest
 
-from app.georeferencing.mercator import MercatorBox
-from app.georeferencing.reference import fetch_reference
+from libs.georeferencing.mercator import MercatorBox
+from libs.georeferencing.reference import fetch_reference
 
 BOX = MercatorBox(west=-700000.0, south=4500000.0, east=-600000.0, north=4550000.0)
 

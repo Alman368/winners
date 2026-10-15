@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-from datetime import date
 from typing import Annotated
 
 import cv2
@@ -7,27 +5,17 @@ import httpx
 import numpy as np
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 
-from app.copernicus.browser_export import MultiDayExportError, capture_date
-from app.georeferencing.geocoding import PlaceNotFoundError
-from app.georeferencing.locate import locate
-from app.georeferencing.matching import GeoreferenceError
-from app.http_client import get_http_client
+from libs.copernicus.browser_export import MultiDayExportError, capture_date
+from libs.georeferencing.geocoding import PlaceNotFoundError
+from libs.georeferencing.locate import locate
+from libs.georeferencing.matching import GeoreferenceError
+from libs.http_client import get_http_client
+from models import GeoreferencedImage
 
-router = APIRouter()
-
-
-@dataclass(frozen=True)
-class GeoreferencedImage:
-    date: date
-    bbox: tuple[float, float, float, float]
-    image_size: tuple[int, int]
-    centre_lon: float
-    centre_lat: float
-    metres_per_px: float
-    inliers: int
+router: APIRouter = APIRouter(prefix="/georeference", tags=["georeference"])
 
 
-@router.post("/georeference")
+@router.post("")
 def georeference(
     image: UploadFile,
     place: Annotated[str, Form()],
