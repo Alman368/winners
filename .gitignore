@@ -17,3 +17,5 @@ backend/data/
 !.claude/skills/
 !.claude/skills/**
 .playwright-mcp/
+
+.cache/

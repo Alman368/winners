@@ -45,7 +45,7 @@ const ChartCard3 = ({ title, description, valueLabel, data, footer, className }:
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-64 w-full">
+        <ChartContainer config={chartConfig} className="h-56 w-full">
           <BarChart
             data={data}
             layout="vertical"
@@ -56,14 +56,15 @@ const ChartCard3 = ({ title, description, valueLabel, data, footer, className }:
             <YAxis
               type="category"
               dataKey="label"
+              interval={0}
               axisLine={false}
               tickLine={false}
               tickMargin={8}
-              width={150}
+              width={140}
               fontSize={12}
             />
             <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-            <Bar dataKey="value" radius={[0, 4, 4, 0]} />
+            <Bar dataKey="value" radius={[0, 4, 4, 0]} isAnimationActive={false} />
           </BarChart>
         </ChartContainer>
       </CardContent>

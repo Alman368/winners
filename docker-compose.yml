@@ -3,6 +3,8 @@ services:
     build: ./backend
     container_name: winners_backend
     restart: unless-stopped
+    env_file:
+      - ./backend/.env
     logging:
       driver: json-file
       options:

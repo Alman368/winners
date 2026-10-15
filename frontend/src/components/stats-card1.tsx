@@ -20,10 +20,10 @@ const StatsCard1 = ({ title, value, unit, description, className }: StatsCard1Pr
       </CardHeader>
       <CardContent>
         <div className="flex items-baseline gap-1.5">
-          <span className="text-3xl font-bold tabular-nums">{value}</span>
+          <span className="text-2xl font-bold tabular-nums">{value}</span>
           <span className="text-sm text-muted-foreground">{unit}</span>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{description}</p>
       </CardContent>
     </Card>
   );

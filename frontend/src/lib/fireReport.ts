@@ -25,6 +25,8 @@ export type AffectedRow = {
 
 const SEVERE_CLASSES: SeverityClass[] = ['moderada_alta', 'alta']
 const MIN_LAND_COVER_PCT = 1
+const MIN_NEARBY_POPULATION = 500
+const EDGE_KM = 0.1
 
 export const mapLayerSwatches = {
   burned: palette.carbon,
@@ -191,11 +193,18 @@ export function buildLandCoverChart(report: FireReport): { data: ChartCard3Datum
 }
 
 export function buildAffectedRows(report: FireReport): AffectedRow[] {
-  const towns = report.affected.towns.map<AffectedRow>((town) => ({
+  const relevantTowns = report.affected.towns
+    .filter((town) => town.inside || (town.population !== null && town.population >= MIN_NEARBY_POPULATION))
+    .sort((a, b) => Number(b.inside && b.confirmedOfficial) - Number(a.inside && a.confirmedOfficial) || Number(b.inside) - Number(a.inside) || a.distanceKm - b.distanceKm)
+  const towns = relevantTowns.map<AffectedRow>((town) => ({
     id: `town-${town.name}`,
     name: town.name,
     type: t.affected.types.town,
-    situation: town.inside ? t.affected.inside : t.affected.near(formatNumber(town.distanceKm, 1)),
+    situation: town.inside
+      ? t.affected.inside
+      : town.distanceKm < EDGE_KM
+        ? t.affected.edge
+        : t.affected.near(formatNumber(town.distanceKm, 1)),
     detail: town.population === null ? t.affected.noPopulation : t.affected.population(formatNumber(town.population)),
     official: town.inside ? (town.confirmedOfficial ? 'confirmed' : 'not_confirmed') : null,
   }))
