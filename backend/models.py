@@ -46,14 +46,6 @@ class BurntAreaDetail(BurntArea):
     perimeter: dict[str, Any]
 
 
-class SatelliteScene(BaseModel):
-    id: str
-    platform: str
-    acquired_at: datetime
-    cloud_cover: float
-    tile: str
-
-
 class Hotspot(BaseModel):
     latitude: float
     longitude: float
