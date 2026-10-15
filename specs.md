@@ -118,7 +118,10 @@ Una vez georreferenciada la imagen, se puede pedir:
 6. **Hectáreas reales y coordenadas de cada píxel**: cruce con carreteras, edificios, Natura 2000, etc.
 
 **Cuota**:
-- Se renueva el día 1 de cada mes y no se acumula. La cifra de unos 10.000 PU/mes para Sentinel Hub se debe comprobar en el dashboard.
+- **30.000 PU y 30.000 peticiones al mes** (dashboard de Sentinel Hub de CDSE). Se renueva el día 1 de cada mes y no se acumula.
+- A 15-10-2026 se habían gastado 4.329 PU y 1.125 peticiones; solo unos 150 PU salieron del backend. Navegar por el Copernicus Browser con la misma cuenta también consume.
+- Hay además un **límite de peticiones por minuto**: si se lanzan muchas seguidas, la API responde 429.
+- Cada respuesta de la Process API indica su coste en la cabecera `x-processingunits-spent`.
 - 1 imagen de 2500×1546 con 3 bandas cuesta unos 15 PU.
 - Al superar la cuota, la API responde 403.
 
@@ -297,6 +300,7 @@ Cada incendio tiene **una pestaña** con todo su historial.
 | INC-5 | Cambios entre días | Dos perímetros sintéticos → ha nuevas exactas y sector correcto |
 | INC-6 | Focos FIRMS históricos asignados al día correcto | Respuesta grabada; UTC frente a hora local |
 | INC-7 | Informe final consolidado | dNBR entre la imagen anterior y la última |
+| INC-8 | Inicio estimado como intervalo (`backend/libs/fire/onset.py`, `onset_search.py`) | Intervalo entre la última pasada sin cicatriz y la primera con ella; salta pasadas nubladas e ignora cambios pequeños fuera de la cicatriz. **⏸ Aparcado**: un falso "quemado" por nubes no detectadas (Niebla 03-08) adelanta el inicio; falta usar la última pasada sin cicatriz. No está conectado a ningún endpoint. Coste: ~19 PU y ~1 min por incendio |
 
 ---
 
