@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -33,11 +33,18 @@ class SceneInfo(BaseModel):
     image_size: tuple[int, int]
 
 
+class SeverityClass(BaseModel):
+    name: Literal["low", "moderate_low", "moderate_high", "high"]
+    area_ha: float
+    geometry: dict[str, Any]
+    """GeoJSON MultiPolygon in lon/lat."""
+
+
 class BurnedArea(BaseModel):
     polygons: list[BurnedPolygon]
     area_ha: float
     perimeter_km: float
-    severity_ha: dict[str, float]
+    severity: list[SeverityClass]
 
 
 class Point(BaseModel):
@@ -52,6 +59,8 @@ class ActiveFire(BaseModel):
     pixels: int
     area_ha: float
     front_length_km: float
+    geometry: dict[str, Any]
+    """GeoJSON MultiPolygon in lon/lat."""
 
 
 class FireAnalysis(BaseModel):

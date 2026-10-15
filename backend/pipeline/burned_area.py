@@ -8,6 +8,11 @@ CROSS: NDArray[np.bool_] = ndimage.generate_binary_structure(2, 1)
 SQUARE: NDArray[np.bool_] = ndimage.generate_binary_structure(2, 2)
 
 
+def _disk(radius_px: int) -> NDArray[np.bool_]:
+    offsets = np.arange(-radius_px, radius_px + 1)
+    return np.hypot(*np.meshgrid(offsets, offsets)) <= radius_px
+
+
 def _remove_small_components(mask: NDArray[np.bool_], min_pixels: int) -> NDArray[np.bool_]:
     labels, _ = ndimage.label(mask, structure=SQUARE)
     sizes = np.bincount(labels.ravel())
@@ -30,18 +35,22 @@ def detect_burned(dnbr: NDArray[np.float32], assessable: NDArray[np.bool_], pixe
     """Burned mask by hysteresis on dNBR.
 
     Seeds above the moderate-low threshold grow through connected pixels above the low-severity bound, which
-    recovers the fire edges without accepting isolated weak pixels.
+    recovers the fire edges without accepting isolated weak pixels. A small closing then joins patches split by
+    one or two pixels, so the fire is not reported as dozens of fragments.
     """
     seeds = assessable & (dnbr > CONFIG.dnbr_seed)
     candidates = assessable & (dnbr > CONFIG.dnbr_grow)
     burned = ndimage.binary_propagation(seeds, structure=SQUARE, mask=candidates)
     burned = ndimage.binary_opening(burned, structure=CROSS)
+    burned = ndimage.binary_closing(burned, structure=_disk(round(CONFIG.burned_closing_m / CONFIG.resolution_m)))
     burned = _remove_small_components(burned, round(CONFIG.min_burned_area_ha / pixel_area_ha))
     return _fill_small_holes(burned, round(CONFIG.min_hole_area_ha / pixel_area_ha))
 
 
-def severity_ha(dnbr: NDArray[np.float32], burned: NDArray[np.bool_], pixel_area_ha: float) -> dict[str, float]:
-    classes = np.digitize(dnbr[burned], CONFIG.severity_breaks)
-    counts = np.bincount(classes, minlength=4)
-    names = ("low", "moderate_low", "moderate_high", "high")
-    return {name: round(float(count * pixel_area_ha), 1) for name, count in zip(names, counts)}
+SEVERITY_NAMES: tuple[str, str, str, str] = ("low", "moderate_low", "moderate_high", "high")
+
+
+def severity_masks(dnbr: NDArray[np.float32], burned: NDArray[np.bool_]) -> dict[str, NDArray[np.bool_]]:
+    """Burned pixels split into the USGS dNBR severity classes."""
+    classes = np.digitize(dnbr, CONFIG.severity_breaks)
+    return {name: burned & (classes == index) for index, name in enumerate(SEVERITY_NAMES)}

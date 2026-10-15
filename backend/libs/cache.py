@@ -5,6 +5,7 @@ Everything lives under `CACHE_DIR` (`backend/data/cache/`, ignored by git, a Doc
 - `georeference/`: location of each uploaded image, keyed by image bytes and place name.
 - `copernicus/`: Sentinel-2 rasters downloaded by the pipeline.
 - `analysis/`: fire analysis of each scene, keyed by its `SceneInput`.
+- `analysis-scenes/`: fire analysis of the example scenes in `pipeline/scenes/`, keyed by the scene file.
 
 Deleting the folder (or one namespace) forces everything to be computed again from scratch.
 """

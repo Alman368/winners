@@ -26,6 +26,14 @@ class FireCluster:
         return int(self.xs.min()), int(self.ys.min()), int(self.xs.max()) + 1, int(self.ys.max()) + 1
 
     @property
+    def mask(self) -> NDArray[np.bool_]:
+        """Cluster pixels inside its own bbox."""
+        x0, y0, x1, y1 = self.bbox
+        window = np.zeros((y1 - y0, x1 - x0), bool)
+        window[self.ys - y0, self.xs - x0] = True
+        return window
+
+    @property
     def front_length_px(self) -> float:
         """Extent along the cluster's main axis: a fire front is a long, thin line."""
         if self.pixels < 2:

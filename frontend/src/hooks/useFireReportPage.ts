@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 
+import { fetchSceneAnalysis } from '@/api/analysis'
 import { fetchBasemapStyle } from '@/api/basemap'
 import { fetchFireReport } from '@/api/fireReports'
 import { fetchScenePasses } from '@/api/scenes'
+import { applyAnalysis } from '@/lib/analysis'
 import { demoFires } from '@/lib/demoFires'
 import {
   buildAffectedRows,
@@ -50,14 +52,25 @@ export function useFireReportPage() {
     queryFn: fetchBasemapStyle,
     staleTime: Infinity,
   })
-  const report = reportQuery.data
+  const sceneId = demoFires.find((fire) => fire.id === fireId)!.sceneId
+  const analysisQuery = useQuery({
+    queryKey: ['fire-analysis', sceneId],
+    queryFn: () => fetchSceneAnalysis(sceneId),
+    staleTime: Infinity,
+  })
+  const staticReport = reportQuery.data
+  const analysis = analysisQuery.data
+  const report = useMemo(
+    () => (staticReport && analysis ? applyAnalysis(staticReport, analysis) : undefined),
+    [staticReport, analysis],
+  )
   const passesQuery = useQuery({
     queryKey: ['scene-passes', fireId],
     queryFn: () => {
-      const window = passWindow(report!)
-      return fetchScenePasses(sceneBbox(report!), window.start, window.end)
+      const window = passWindow(staticReport!)
+      return fetchScenePasses(sceneBbox(staticReport!), window.start, window.end)
     },
-    enabled: report !== undefined,
+    enabled: staticReport !== undefined,
     staleTime: Infinity,
   })
 
@@ -154,7 +167,7 @@ export function useFireReportPage() {
       isLoading: passesQuery.isLoading,
       isError: passesQuery.isError,
     },
-    isLoading: reportQuery.isLoading || basemapQuery.isLoading,
-    isError: reportQuery.isError || basemapQuery.isError,
+    isLoading: reportQuery.isLoading || analysisQuery.isLoading || basemapQuery.isLoading,
+    isError: reportQuery.isError || analysisQuery.isError || basemapQuery.isError,
   }
 }

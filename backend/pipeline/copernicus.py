@@ -20,17 +20,17 @@ CACHE_DIR: Path = cache.CACHE_DIR / "copernicus"
 
 BANDS_EVALSCRIPT: str = """//VERSION=3
 function setup() {
-  return {input: [{bands: ["B04", "B08", "B8A", "B11", "B12", "SCL", "dataMask"]}], output: {bands: 7, sampleType: "UINT16"}};
+  return {input: [{bands: ["B04", "B8A", "B11", "B12", "SCL", "dataMask"]}], output: {bands: 6, sampleType: "UINT16"}};
 }
 function evaluatePixel(s) {
-  return [s.B04 * 10000, s.B08 * 10000, s.B8A * 10000, s.B11 * 10000, s.B12 * 10000, s.SCL, s.dataMask];
+  return [s.B04 * 10000, s.B8A * 10000, s.B11 * 10000, s.B12 * 10000, s.SCL, s.dataMask];
 }"""
 
 PRE_FIRE_EVALSCRIPT: str = """//VERSION=3
 function setup() {
   return {
-    input: [{bands: ["B04", "B08", "B8A", "B11", "B12", "SCL", "dataMask"]}],
-    output: {bands: 8, sampleType: "UINT16"},
+    input: [{bands: ["B04", "B8A", "B11", "B12", "SCL", "dataMask"]}],
+    output: {bands: 7, sampleType: "UINT16"},
     mosaicking: "ORBIT"
   };
 }
@@ -45,10 +45,10 @@ function evaluatePixel(samples, scenes) {
     const s = samples[i];
     if (s.dataMask === 1 && CLOUD_CLASSES.indexOf(s.SCL) < 0) {
       const ageDays = Math.round((FIRE_START - new Date(scenes[i].date).getTime()) / 86400000);
-      return [s.B04 * 10000, s.B08 * 10000, s.B8A * 10000, s.B11 * 10000, s.B12 * 10000, s.SCL, 1, ageDays];
+      return [s.B04 * 10000, s.B8A * 10000, s.B11 * 10000, s.B12 * 10000, s.SCL, 1, ageDays];
     }
   }
-  return [0, 0, 0, 0, 0, 0, 0, 0];
+  return [0, 0, 0, 0, 0, 0, 0];
 }"""
 
 

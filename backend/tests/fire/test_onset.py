@@ -23,7 +23,7 @@ def bands(burned: tuple[tuple[slice, slice], ...] = (), cloud: tuple[tuple[slice
     for region in cloud:
         scl[region] = CLOUD_HIGH_PROBABILITY
     zeros = np.zeros((100, 100), np.float32)
-    return Bands(b04=zeros, b08=zeros, b8a=b8a, b11=zeros, b12=b12, scl=scl, valid=np.ones((100, 100), bool))
+    return Bands(b04=zeros, b8a=b8a, b11=zeros, b12=b12, scl=scl, valid=np.ones((100, 100), bool))
 
 
 def at(month: int, day: int) -> datetime:

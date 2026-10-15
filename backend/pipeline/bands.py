@@ -11,7 +11,6 @@ class Bands:
     """Sentinel-2 L2A surface reflectance on the working grid."""
 
     b04: NDArray[np.float32]
-    b08: NDArray[np.float32]
     b8a: NDArray[np.float32]
     b11: NDArray[np.float32]
     b12: NDArray[np.float32]
@@ -21,8 +20,8 @@ class Bands:
     @classmethod
     def from_raster(cls, raster: NDArray[np.uint16]) -> "Bands":
         """Builds the bands from the (band, row, col) raster returned by the evalscripts in `copernicus.py`."""
-        reflectance = raster[:5].astype(np.float32) / REFLECTANCE_SCALE
-        return cls(*reflectance, scl=raster[5].astype(np.uint8), valid=raster[6] > 0)
+        reflectance = raster[:4].astype(np.float32) / REFLECTANCE_SCALE
+        return cls(*reflectance, scl=raster[4].astype(np.uint8), valid=raster[5] > 0)
 
 
 @dataclass(frozen=True)
@@ -33,7 +32,7 @@ class PreFireComposite:
 
     @classmethod
     def from_raster(cls, raster: NDArray[np.uint16]) -> "PreFireComposite":
-        return cls(Bands.from_raster(raster[:7]), raster[7])
+        return cls(Bands.from_raster(raster[:6]), raster[6])
 
     @property
     def coverage(self) -> float:

@@ -30,6 +30,20 @@ class Config:
     min_hole_area_ha: float = 1.0
     """Smaller unburned holes are filled: they are pixel noise, not real unburned islands."""
 
+    burned_closing_m: float = 40.0
+    """Closing radius that joins burned patches separated by one or two pixels. Adds 3-4 % of area and brings the
+    perimeter closer to EFFIS (Madrid-Ávila: 1144 km to 733 km). Bigger closings fill bays of healthy vegetation."""
+
+    perimeter_min_polygon_ha: float = 50.0
+    """Only burned polygons from this size count for the fire perimeter; smaller ones still count for the area."""
+
+    severity_map_smoothing_m: float = 100.0
+    """Median filter window applied to dNBR before drawing the severity map. Per-pixel classes alternate and draw
+    thousands of specks (La Mierla: 19 600 pieces, 8 MB). Class areas are still measured without smoothing."""
+
+    severity_map_min_patch_ha: float = 1.0
+    """Severity map pieces below this size are not drawn."""
+
     fire_min_b12: float = 0.5
     """Minimum SWIR 2.2 µm reflectance of an active fire pixel. Burned ash stays around 0.24 (measured in Niebla)."""
 

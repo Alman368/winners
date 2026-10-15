@@ -31,7 +31,7 @@ El módulo de localización nos entrega, por escena:
 
 Además tenemos acceso a **Copernicus Data Space Ecosystem (CDSE)** con credenciales OAuth (variables de entorno `COPERNICUS_CLIENT_ID` y `COPERNICUS_CLIENT_SECRET` en `backend/.env`), y desde ahí descargamos las bandas originales.
 
-La rejilla de la imagen original es lineal en lon/lat (EPSG:4326), así que `lon/lat → píxel de imagen` es una interpolación lineal sobre el bbox.
+La rejilla de la imagen original es lineal en lon/lat (EPSG:4326), así que `lon/lat → píxel de imagen` es una interpolación lineal sobre el bbox. Comprobado en Madrid-Ávila con 316 puntos SIFT contra una referencia en EPSG:4326: con latitud lineal el error en filas es de 0.6 px de mediana y sin curvatura; con Web Mercator, 6.0 px con una curvatura en U. `main` usa ahora Web Mercator (`grid.lonlat_to_image_pixel`), pendiente de corregir junto con el módulo de georreferenciación.
 
 ### Datos de las escenas de ejemplo
 
@@ -84,7 +84,7 @@ La severidad coincide con el prototipo. El área sale un 2–3 % mayor porque se
 
 **Problemas que quedan:**
 1. **Focos todavía fragmentados:** agrupar a 100 m baja de 230 a 180 focos en Madrid, pero siguen saliendo muchos focos pequeños (§6.2).
-2. **Perímetro inflado en escenas grandes:** 1190 km en Madrid por 195 polígonos con bordes muy irregulares (§7).
+2. **Perímetro inflado en escenas grandes:** 1190 km en Madrid por 195 polígonos con bordes muy irregulares. Resuelto en §7.5.
 3. **3–6 % fuera de EFFIS** en Niebla y Madrid: falta revisar si son bordes, cosechas o errores de EFFIS.
 
 ### 3.2 Primeras medidas en Niebla con fechas sueltas
@@ -123,7 +123,7 @@ Conclusiones:
 
 - Colección: **Sentinel-2 L2A** (reflectancia de superficie, corregida atmosféricamente).
 - API: **Process API** de Sentinel Hub en CDSE (`https://sh.dataspace.copernicus.eu/api/v1/process`), salida GeoTIFF `UINT16`. No hace falta el catálogo: la composición previa (§4.3) elige las fechas dentro del evalscript.
-- Bandas: `B04` (rojo), `B08` (NIR 10 m), `B8A` (NIR estrecho 20 m), `B11` (SWIR 1.6 µm), `B12` (SWIR 2.2 µm), `SCL` (clasificación de escena) y `dataMask`.
+- Bandas: `B8A` (NIR estrecho 20 m) y `B12` (SWIR 2.2 µm) para el NBR y el fuego activo; `B04` (rojo) y `B11` (SWIR 1.6 µm) para el humo (§5.4); `SCL` (clasificación de escena) y `dataMask`. No se descarga `B08` (NIR 10 m): el NBR usa `B8A`, de la misma resolución que `B12`.
 - **Rejilla de trabajo:** el mismo bbox en EPSG:4326, con `width`/`height` calculados para **20 m/px** (resolución nativa de B8A, B11 y B12). Así la rejilla es la misma para todas las fechas y se convierte linealmente a píxeles de la imagen original. `upsampling` y `downsampling: NEAREST` para no mezclar la SCL.
 - **Descarga robusta** (con teselas grandes y `FLOAT32` el servidor devolvía errores 502 y respuestas cortadas):
   - Teselas de **1000×1000 px como máximo**, 4 en paralelo.
@@ -169,7 +169,7 @@ Ojo: la SCL puede clasificar el humo denso como nube. Se trata en §5.4.
 
 1. **Semillas:** `dNBR > 0.27` (umbral de severidad moderada-baja de Key & Benson, 2006; ver §5.5). Son píxeles quemados con alta seguridad.
 2. **Crecimiento por histéresis:** añadir los píxeles conectados a una semilla con `dNBR > 0.1` (límite inferior de "quemado, severidad baja" de la misma tabla). Esto recoge los bordes del incendio sin aceptar píxeles débiles aislados. En la exploración con JPG la histéresis crecía hacia vegetación sana, pero allí el índice estaba sesgado por el humo y el estirado; con dNBR sobre reflectancias hay que volver a medirla.
-3. **Limpieza:** apertura de radio 1 px (20 m) y descarte de componentes de menos de una **superficie mínima en hectáreas** (`config.py`, valor inicial 5 ha, a ajustar con la validación). Sin cierres grandes (§3). Rellenar los **agujeros de menos de una superficie mínima** (`config.py`, valor inicial 1 ha): en Niebla salen 709 agujeros, casi todos de unos pocos píxeles, que no son islas reales.
+3. **Limpieza:** apertura de radio 1 px (20 m), **cierre de 40 m** (une manchas separadas por 1–2 px; añade un 3–4 % de área) y descarte de componentes de menos de una **superficie mínima en hectáreas** (`config.py`, valor inicial 5 ha, a ajustar con la validación). Sin cierres más grandes: rellenan bahías de vegetación sana (§3). Rellenar los **agujeros de menos de una superficie mínima** (`config.py`, valor inicial 1 ha): en Niebla salen 709 agujeros, casi todos de unos pocos píxeles, que no son islas reales.
 4. **Frente activo:** los píxeles de fuego activo tienen B12 muy alto, así que su NBR es muy negativo y su dNBR alto. Ya quedan dentro de la máscara sin ningún paso extra. Comprobarlo en la validación.
 5. **Cambios que no son incendio:** una cosecha o un desbroce entre las dos fechas también sube el dNBR. Se controla con el tamaño mínimo y con la forma (las parcelas son rectangulares y aisladas). Si aparecen en la validación, medir un filtro de forma, pero no añadirlo antes.
 
@@ -189,7 +189,7 @@ Clases de dNBR de Key & Benson (2006), estándar del USGS, calculadas sobre la m
 | 0.44 – 0.66 | Moderada-alta |
 | > 0.66 | Alta |
 
-Se reporta la superficie (ha) de cada clase. La tabla original se definió con Landsat; documentar que se aplica a Sentinel-2 con B8A/B12, que es lo habitual en la bibliografía.
+Se reporta la superficie (ha) de cada clase y su geometría para el mapa (§8). La tabla original se definió con Landsat; documentar que se aplica a Sentinel-2 con B8A/B12, que es lo habitual en la bibliografía.
 
 ---
 
@@ -230,7 +230,15 @@ Sobre la imagen posterior en reflectancia, a 20 m:
 2. **Simplificación:** Douglas-Peucker con tolerancia de **20 m** (un píxel), aplicada en coordenadas de píxel antes de pasar a lon/lat (los píxeles de la rejilla son cuadrados en metros). Sin simplificar, el contorno de un ráster infla el perímetro hasta ~×1.27 por el efecto escalera.
 3. **Superficie y perímetro:** cálculo geodésico con `pyproj.Geod` sobre los polígonos simplificados. Superficie en hectáreas y perímetro en km.
 4. **Superficie efectiva:** el área del polígono **sin** los agujeros. El perímetro es el del contorno exterior.
-5. **Perímetro en escenas grandes:** en Madrid salen 195 polígonos y 1190 km de perímetro (§3.1), porque los bordes irregulares y las manchas pequeñas suman mucho. Medir dos opciones y quedarse con la que dé un perímetro comparable al de EFFIS: (a) unir polígonos separados menos de 40 m (2 px) antes de vectorizar; (b) reportar además el perímetro solo de los polígonos de más de una superficie mínima (p. ej. 50 ha).
+5. **Perímetro en escenas grandes:** sin más, en Madrid salían 1144 km de perímetro, porque los bordes irregulares y las manchas pequeñas suman mucho. Solución: el cierre de 40 m de §5.3 y **contar en el perímetro solo los polígonos de al menos 50 ha** (`config.py`); los pequeños siguen contando en el área. Medido frente al perímetro de EFFIS (que se dibuja a menor resolución y sale más suave):
+
+   | Opción | La Mierla | Madrid-Ávila |
+   |---|---|---|
+   | EFFIS | 223 km | 558 km |
+   | Sin cambios | 357 km | 1144 km |
+   | Cierre de 40 m | 262 km | 733 km |
+   | Solo polígonos ≥ 50 ha | 313 km | 993 km |
+   | **Cierre de 40 m + polígonos ≥ 50 ha** | **242 km** | **661 km** |
 6. **Coordenadas de imagen:** cada vértice también en píxeles de la imagen original, por interpolación lineal con `bbox` e `image_size`.
 
 ---
@@ -258,7 +266,12 @@ Un único resultado tipado (modelo pydantic `FireAnalysis` en `models.py`) que s
     ],
     "area_ha": 1240.5,
     "perimeter_km": 18.6,
-    "severity_ha": { "low": 250.1, "moderate_low": 420.3, "moderate_high": 380.0, "high": 190.1 }
+    "severity": [
+      { "name": "low", "area_ha": 250.1, "geometry": { "type": "MultiPolygon", "coordinates": [] } },
+      { "name": "moderate_low", "area_ha": 420.3, "geometry": { "type": "MultiPolygon", "coordinates": [] } },
+      { "name": "moderate_high", "area_ha": 380.0, "geometry": { "type": "MultiPolygon", "coordinates": [] } },
+      { "name": "high", "area_ha": 190.1, "geometry": { "type": "MultiPolygon", "coordinates": [] } }
+    ]
   },
   "smoke_unassessed": {
     "polygons": [ { "exterior": { "lonlat": [], "pixel": [] }, "holes": [] } ],
@@ -272,7 +285,8 @@ Un único resultado tipado (modelo pydantic `FireAnalysis` en `models.py`) que s
       "bbox_pixel": [x0, y0, x1, y1],
       "pixels": 32,
       "area_ha": 1.3,
-      "front_length_km": 1.2
+      "front_length_km": 1.2,
+      "geometry": { "type": "MultiPolygon", "coordinates": [] }
     }
   ],
   "active_front_km": 4.8,
@@ -283,6 +297,8 @@ Un único resultado tipado (modelo pydantic `FireAnalysis` en `models.py`) que s
 - `pixel` está en coordenadas de la **imagen original** (la que recibe el usuario), `lonlat` en EPSG:4326.
 - `geojson` contiene el área quemada (MultiPolygon con agujeros, con `area_ha`, `perimeter_km` y `severity_ha`) y los focos como puntos con sus propiedades. La zona bajo humo se añadirá cuando se implemente.
 - `not_assessable_ha`: superficie excluida por nubes, sombras o falta de datos (§5.2).
+- `severity[].geometry`: polígonos de cada clase en lon/lat para pintar el mapa de severidad. Se dibujan sobre el dNBR suavizado con una mediana de 100 m y sin las piezas de menos de 1 ha: sin suavizar, las clases cambian de un píxel a otro y salen miles de motas (La Mierla: 19 600 piezas, unos 8 MB). `area_ha` se mide píxel a píxel, sin suavizar.
+- `active_fires[].geometry`: polígono de los píxeles de cada foco, en lon/lat.
 
 ---
 

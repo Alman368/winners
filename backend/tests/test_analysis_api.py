@@ -31,7 +31,7 @@ def fire_analysis(scene: SceneInput) -> FireAnalysis:
             bbox=scene.bbox,
             image_size=scene.image_size,
         ),
-        burned_area=BurnedArea(polygons=[], area_ha=2455.0, perimeter_km=40.0, severity_ha={}),
+        burned_area=BurnedArea(polygons=[], area_ha=2455.0, perimeter_km=40.0, severity=[]),
         not_assessable_ha=0.0,
         active_fires=[],
         active_front_km=0.0,
