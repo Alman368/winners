@@ -220,21 +220,27 @@ FireAnalysis (zona quemada, severidad, focos, GeoJSON con lon/lat y píxeles de 
 | `pipeline/` | **Algoritmo principal**: dNBR con composición previa, zona quemada, severidad, focos, área geodésica | `/api/analysis` |
 | `libs/georeferencing/` | Localiza una foto sin coordenadas | `/api/georeference`, `/api/analysis` |
 | `libs/copernicus/auth.py`, `credentials.py` | Token OAuth y credenciales `COPERNICUS_*` | Todo lo que llama a Copernicus, también `pipeline/` |
-| `libs/copernicus/catalog.py` | Pasadas de Sentinel-2 por bbox y fechas (catálogo de Copernicus) | Inicio estimado (INC-8) |
+| `libs/copernicus/catalog.py` | Pasadas de Sentinel-2 por bbox y fechas (catálogo de Copernicus) | `/api/fires/{id}/scenes`, inicio estimado (INC-8) |
 | `libs/copernicus/process.py` | Bandas en GeoTIFF **UTM** (`fetch_bands`) | Análisis exploratorio; hectáreas exactas por píxel |
 | `libs/copernicus/browser_export.py` | Fecha de toma desde el nombre del archivo | Georreferenciación |
 | `libs/effis.py` | Incendios oficiales de EFFIS y fecha de inicio | `/api/fires`, `/api/analysis` |
 | `libs/firms.py` | Focos térmicos de NASA FIRMS | `/api/fires/{id}/hotspots` |
-| `libs/sentinel.py` | Pasadas de Sentinel-2 en Planetary Computer, **sin cuenta** | `/api/fires/{id}/scenes` |
 | `libs/detection.py` | Zona quemada y focos por **colores del JPG SWIR**: instantáneo, sin red ni cuenta, aproximado | `/api/scenes/analyze`; vista rápida y respaldo sin conexión |
 | `libs/fire/` | Inicio estimado con pasadas de Sentinel-2 (⏸ aparcado, INC-8) | Ninguno todavía |
 | `libs/cache.py` | Caché en disco (6.3) | `/api/georeference`, `/api/analysis`, `pipeline/` |
 
-**Conviven a propósito** dos formas de detectar y dos catálogos:
-- `libs/detection.py` (JPG) y `pipeline/` (bandas reales);
-- `libs/sentinel.py` (sin cuenta) y `libs/copernicus/catalog.py` (Copernicus).
+**Conviven a propósito** dos formas de detectar:
+- `libs/detection.py` (colores del JPG);
+- `pipeline/` (bandas reales).
 
 Las hectáreas oficiales salen de `pipeline/`.
+
+Hay **un solo catálogo** de pasadas: `libs/copernicus/catalog.py`. Alberto retiró la búsqueda en Planetary Computer (`libs/sentinel.py`) en `main`.
+
+**Copernicus en síncrono y asíncrono:**
+- `fetch_token` y `search_acquisitions` son síncronos (`httpx.Client`).
+- Los endpoints asíncronos los llaman con `run_in_threadpool`.
+- El pipeline los llama con `asyncio.to_thread`.
 
 ---
 
