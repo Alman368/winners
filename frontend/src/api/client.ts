@@ -1,7 +1,22 @@
+export class ApiError extends Error {
+  readonly status: number
+  readonly detail: unknown
+
+  constructor(status: number, detail: unknown) {
+    super(`HTTP ${status}`)
+    this.status = status
+    this.detail = detail
+  }
+}
+
 async function request(path: string, init?: RequestInit): Promise<Response> {
   const response = await fetch(path, init)
   if (!response.ok) {
-    throw new Error(`${response.status} ${response.statusText}`)
+    const contentType = response.headers.get('content-type')
+    const detail = contentType !== null && contentType.includes('application/json')
+      ? ((await response.json()) as { detail: unknown }).detail
+      : await response.text()
+    throw new ApiError(response.status, detail)
   }
   return response
 }

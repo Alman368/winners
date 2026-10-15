@@ -274,7 +274,7 @@ export function FireReportPage() {
         onSubmit={page.fireImport.submit}
         canSubmit={page.fireImport.canSubmit}
         isPending={page.fireImport.isPending}
-        isError={page.fireImport.isError}
+        errorMessage={page.fireImport.errorMessage}
       />
     </div>
   )

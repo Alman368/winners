@@ -24,7 +24,7 @@ type ImportFireDialogProps = {
   onSubmit: () => void
   canSubmit: boolean
   isPending: boolean
-  isError: boolean
+  errorMessage: string | null
 }
 
 export function ImportFireDialog({
@@ -36,7 +36,7 @@ export function ImportFireDialog({
   onSubmit,
   canSubmit,
   isPending,
-  isError,
+  errorMessage,
 }: ImportFireDialogProps) {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -77,9 +77,9 @@ export function ImportFireDialog({
               {t.importFire.running}
             </p>
           )}
-          {isError && (
+          {errorMessage !== null && (
             <p role="alert" className="text-sm text-destructive">
-              {t.importFire.error}
+              {errorMessage}
             </p>
           )}
           <DialogFooter>

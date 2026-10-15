@@ -12,6 +12,7 @@ from libs.effis import FireStartNotFoundError
 from libs.http_client import get_http_client
 from models import FireContext, Weather
 from pipeline.models import BurnedArea, FireAnalysis, SceneInfo, SceneInput, SmokeArea
+from pipeline.copernicus import QuotaExhaustedError
 from tests.replay import ReplayTransport
 from tests.scenes import SCENES_DIR
 
@@ -111,6 +112,33 @@ def test_rejects_a_scene_without_an_effis_fire(monkeypatch: pytest.MonkeyPatch) 
 
     assert response.status_code == 422
     assert response.json() == {"detail": "fire_start_not_found"}
+
+
+def test_reports_copernicus_quota_exhaustion(
+    services: dict[str, list[object]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def quota_exhausted(scene: SceneInput) -> FireAnalysis:
+        raise QuotaExhaustedError("Insufficient processing units")
+
+    monkeypatch.setattr(analysis, "analyze", quota_exhausted)
+    response = upload(TestClient(app))
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "copernicus_quota_exhausted"}
+
+
+def test_reports_an_effis_outage(
+    services: dict[str, list[object]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def unavailable(*args: object, **kwargs: object) -> datetime:
+        request = httpx.Request("GET", "https://api.effis.emergency.copernicus.eu/")
+        raise httpx.HTTPStatusError("Gateway error", request=request, response=httpx.Response(502, request=request))
+
+    monkeypatch.setattr(analysis, "find_fire_start", unavailable)
+    response = upload(TestClient(app))
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "effis_unavailable"}
 
 
 def test_serves_the_precomputed_analysis_of_an_example_scene(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -49,3 +49,13 @@ def test_picks_the_earliest_of_several_fires_inside_the_scene() -> None:
 def test_fails_when_no_effis_fire_touches_the_scene() -> None:
     with pytest.raises(FireStartNotFoundError):
         find(ATLANTIC_BBOX, date(2026, 8, 8), "2026-07-09T00:00:00", "2026-08-08T23:59:59")
+
+
+def test_recovers_from_a_temporary_effis_gateway_failure() -> None:
+    responses = iter([httpx.Response(502), httpx.Response(200, json=RECORDED)])
+
+    async def find_after_failure() -> datetime:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(lambda request: next(responses))) as client:
+            return await find_fire_start(client, "es", NIEBLA_BBOX, date(2026, 8, 8), 30)
+
+    assert asyncio.run(find_after_failure()) == datetime(2026, 8, 6, 23, 28, tzinfo=timezone.utc)

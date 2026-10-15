@@ -20,6 +20,9 @@ export const es = {
     running: 'Analizando la imagen con Copernicus. Puede tardar unos minutos.',
     error:
       'No se ha podido analizar la imagen. Comprueba que es una exportación de un solo día de Copernicus Browser, sin renombrar, y que el lugar es correcto.',
+    quotaError: 'La cuenta de Copernicus ha agotado su cuota. Hay que renovar la cuota o configurar unas credenciales con saldo.',
+    effisError: 'EFFIS no está respondiendo y no hemos podido consultar el inicio del incendio. Vuelve a intentarlo en unos minutos.',
+    contextError: 'La imagen ya está analizada, pero la consulta de carreteras o del tiempo ha fallado. Vuelve a intentarlo.',
   },
   scenes: {
     curtain: 'Comparar con el inicio',

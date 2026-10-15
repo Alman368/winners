@@ -1,3 +1,4 @@
+import asyncio
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
@@ -7,6 +8,7 @@ from models import BurntArea, BurntAreaDetail, LandCoverShares
 
 EFFIS_BURNT_AREAS_URL: str = "https://api.effis.emergency.copernicus.eu/rest/2/burntareas/current/"
 MAX_BURNT_AREAS: int = 1000
+FIRE_START_ATTEMPTS: int = 3
 
 
 class FireStartNotFoundError(Exception):
@@ -76,7 +78,11 @@ async def find_fire_start(
         "firedate__lte": f"{acquisition.isoformat()}T23:59:59",
         "limit": MAX_BURNT_AREAS,
     }
-    response = await client.get(EFFIS_BURNT_AREAS_URL, params=params)
+    for attempt in range(FIRE_START_ATTEMPTS):
+        response = await client.get(EFFIS_BURNT_AREAS_URL, params=params)
+        if response.status_code not in (502, 503, 504) or attempt == FIRE_START_ATTEMPTS - 1:
+            break
+        await asyncio.sleep(attempt + 1)
     response.raise_for_status()
     west, south, east, north = bbox
     starts = [

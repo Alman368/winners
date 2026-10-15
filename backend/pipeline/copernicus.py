@@ -18,6 +18,11 @@ from pipeline.grid import Grid
 PROCESS_URL: str = "https://sh.dataspace.copernicus.eu/api/v1/process"
 CACHE_DIR: Path = cache.CACHE_DIR / "copernicus"
 
+
+class QuotaExhaustedError(Exception):
+    """Copernicus has rejected processing because the account has exhausted its quota."""
+
+
 BANDS_EVALSCRIPT: str = """//VERSION=3
 function setup() {
   return {input: [{bands: ["B04", "B8A", "B11", "B12", "SCL", "dataMask"]}], output: {bands: 6, sampleType: "UINT16"}};
@@ -87,6 +92,10 @@ async def _fetch_tile(client: httpx.AsyncClient, semaphore: asyncio.Semaphore, r
                 if response.status_code == 200:
                     with MemoryFile(response.content) as file, file.open() as dataset:
                         return dataset.read()
+                if response.status_code == 403:
+                    raise QuotaExhaustedError(response.text)
+                if 400 <= response.status_code < 500 and response.status_code != 429:
+                    response.raise_for_status()
             except httpx.TransportError:
                 pass
             await asyncio.sleep(5 * (attempt + 1))

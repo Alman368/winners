@@ -22,6 +22,7 @@ from libs.roads import affected_roads, fetch_roads
 from libs.weather import fetch_weather
 from models import AnalysisInProgress, AnalysisReport, AnalysisResult, FireContext, FireDays
 from pipeline.config import CONFIG
+from pipeline.copernicus import QuotaExhaustedError
 from pipeline.models import FireAnalysis, SceneInput
 from pipeline.pipeline import analyze
 
@@ -62,13 +63,19 @@ async def _analyze_image(client: httpx.Client, content: bytes, filename: str, pl
             )
         except FireStartNotFoundError:
             raise HTTPException(status_code=422, detail="fire_start_not_found")
+        except httpx.HTTPError as error:
+            raise HTTPException(status_code=503, detail="effis_unavailable") from error
     scene = SceneInput(
         bbox=georeference.bbox,
         acquisition_date=georeference.date,
         fire_start=fire_start.astimezone(timezone.utc).date(),
         image_size=georeference.image_size,
     )
-    return AnalysisResult(georeference=georeference, fire_start=fire_start, analysis=await analyze(scene))
+    try:
+        analysis = await analyze(scene)
+    except QuotaExhaustedError as error:
+        raise HTTPException(status_code=503, detail="copernicus_quota_exhausted") from error
+    return AnalysisResult(georeference=georeference, fire_start=fire_start, analysis=analysis)
 
 
 def _burned_area(analysis: FireAnalysis) -> MultiPolygon:
@@ -116,7 +123,10 @@ async def analyze_upload(
         AnalysisResult,
         lambda: _analyze_image(client, content, image.filename, place),
     )
-    context = await fire_context(client, result.analysis, result.fire_start.astimezone(timezone.utc).date())
+    try:
+        context = await fire_context(client, result.analysis, result.fire_start.astimezone(timezone.utc).date())
+    except httpx.HTTPError as error:
+        raise HTTPException(status_code=503, detail="fire_context_unavailable") from error
     return AnalysisReport(**result.model_dump(), context=context)
 
 
