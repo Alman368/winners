@@ -173,7 +173,7 @@ export function FireReportPage() {
         className="flex min-h-0 flex-1 flex-col border-t bg-background lg:w-[480px] lg:flex-none lg:border-t-0 lg:border-l"
       >
         <header className="flex flex-col gap-3 border-b bg-card p-4">
-          <img src={logo} alt={t.app.logo} className="size-8" />
+          <img src={logo} alt={t.app.logo} className="h-10 w-auto object-contain self-start" />
           <Select value={page.fireId} onValueChange={page.selectFire}>
             <SelectTrigger aria-label={t.app.fireSelector} className="w-full">
               <SelectValue />
