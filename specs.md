@@ -1,346 +1,430 @@
-# Specs — Algoritmo de detección y caracterización de incendios con Sentinel-2 (Reto Indra, III Malackathon 2026)
+# Specs · Detección y caracterización de incendios con Sentinel-2
 
-Este documento especifica **solo el algoritmo**: desde que recibimos la escena localizada hasta que entregamos el perímetro, los focos y las estadísticas. Léelo entero antes de escribir código y cumple siempre las reglas de `AGENTS.md` (están por encima de cualquier cosa de este documento).
-
----
-
-## 1. Contexto y alcance
-
-- Enunciado: `Deteccion Incendios/Reto Malackathon _Detección incendios_Indra_2026.pdf`.
-- **Básico:** delimitar la zona afectada por el incendio y estimar su perímetro.
-- **Avanzado:** detectar zonas de fuego activo en el momento de la captura, diferenciadas de la superficie quemada sin actividad.
-- El jurado probará con **imágenes nuevas**. Nada puede estar ajustado a una escena concreta.
-- Criterios que afectan al algoritmo, por prioridad: calidad de detección del área y de los focos; baja tasa de falsos positivos y robustez; justificación técnica de cada decisión (cada umbral con su razón física o su referencia bibliográfica, en un docstring corto).
-
-**Alcance de este spec:**
-- **Entra:** descarga de datos de Copernicus para la escena, detección de área quemada, fuego activo y humo, vectorización, estadísticas y el JSON de salida.
-- **No entra:** localizar la imagen de entrada (lo hace otro módulo y nos da el bbox y la fecha), API, frontend, render de la imagen y textos para el usuario.
+Reto Indra Espacio · III Malackathon 2026. Producto orientado a **análisis a posteriori**: no hay modo en tiempo real.
 
 ---
 
-## 2. Entrada
+## 1. Alcance
 
-El módulo de localización nos entrega, por escena:
+- **Obligatorio del reto**
+  - Básico: delimitar la zona afectada y su perímetro sobre una imagen original.
+  - Avanzado (da acceso a la final): detectar focos activos en el momento de la toma, distinguidos de la superficie quemada sin actividad.
+- **Nuestro producto**: transformar las imágenes en un **informe posterior al incendio** fácil de entender:
+  - extensión,
+  - evolución día a día,
+  - severidad,
+  - infraestructuras y valores afectados,
+  - riesgos posteriores.
+- **Premio Tablets**: accesibilidad y usuario en el centro.
+- **Fuera de alcance**: alertas, evacuaciones en curso y cualquier dato en tiempo real.
 
-| Campo | Tipo | Descripción |
-|---|---|---|
-| `bbox` | `tuple[float, float, float, float]` | `(min_lon, min_lat, max_lon, max_lat)` en EPSG:4326, cubre exactamente la imagen original |
-| `acquisition_date` | `date` | Fecha de captura `YYYY-MM-DD` (sale del nombre del archivo) |
-| `image_size` | `tuple[int, int]` | `(width, height)` en px de la imagen original, para devolver también coordenadas de imagen |
-| `fire_start` | `date` | Fecha de inicio del incendio `YYYY-MM-DD`. Sale de EFFIS (`fire_date`); si el incendio no está en EFFIS, del primer foco de NASA FIRMS dentro del bbox. Define la ventana de la imagen anterior (§4.3) |
+---
 
-Además tenemos acceso a **Copernicus Data Space Ecosystem (CDSE)** con credenciales OAuth (variables de entorno `CDSE_CLIENT_ID` y `CDSE_CLIENT_SECRET` en `backend/.env`), y desde ahí descargamos las bandas originales.
+## 2. Datos del reto
 
-La rejilla de la imagen original es lineal en lon/lat (EPSG:4326), así que `lon/lat → píxel de imagen` es una interpolación lineal sobre el bbox.
+| Escena | True Color | SWIR | Wildfire | Tamaño | En el PDF |
+|---|---|---|---|---|---|
+| Niebla (Huelva) | ✅ | ✅ | ✅ | 2500×1546 | Sí |
+| Madrid-Ávila | ✅ | ✅ | ❌ | 9930×6141 | Sí |
+| La Mierla (Guadalajara) | ✅ | ✅ | ✅ | 2500×1546 | No (se usa como hold-out) |
 
-### Datos de las escenas de ejemplo
+Hallazgos:
+- **Formato**: JPG de visualización de 8 bits, sin EXIF ni georreferencia y con artefactos de compresión.
+- **SWIR** = R:B12, G:B8A, B:B4. `(G−R)/(G+R)` se comporta como el NBR. En el SWIR:
+  - quemado: rojo-marrón;
+  - vegetación: verde;
+  - agua: negro;
+  - humo: casi transparente;
+  - fuego activo: naranja saturado.
+- **Wildfire** (script de Pierre Markuse) = True Color con el fuego resaltado. Solo sirve para validar: falta en Madrid-Ávila y puede faltar en las imágenes ocultas.
+- **Falsos positivos visibles**:
+  - casco urbano de Madrid (rosado en SWIR);
+  - cultivos y suelo desnudo del SE de Niebla;
+  - embalses dentro de zona quemada (Ávila);
+  - humo sobre la cicatriz en True Color.
+- **Generalización**: la organización evaluará con imágenes desconocidas, así que no se permiten umbrales fijos ajustados a una escena.
 
-| Escena | Fecha | `fire_start` (EFFIS) | bbox | m/px del JPG |
+---
+
+## 3. Procedencia de las imágenes y Copernicus
+
+### 3.1 Origen
+
+- **Herramienta**: las imágenes se exportan desde el **Copernicus Browser**, colección **Sentinel-2 L2A**, con sus capas por defecto (True color, SWIR, Wildfires).
+- **Nombre del archivo**: `AAAA-MM-DD-00_00_AAAA-MM-DD-23_59_Sentinel-2_L2A_<capa>.jpg`. El rango es el **intervalo de los datos elegido en el visor**, no el momento de la exportación. Con un solo día, la imagen es el mosaico de las pasadas de ese día.
+- **La fecha es la de toma**. Se comprobó contra el catálogo:
+
+  | Escena | Fecha | Pasada | Tesela |
+  |---|---|---|---|
+  | La Mierla | 21-07-2026 | S2C 10:56 UTC, 0,2 % nubes | T30TVL |
+  | Madrid-Ávila | 26-07-2026 | S2B 10:56 + S2A 11:07 (dos pasadas) | T30TUK |
+  | Niebla | 08-08-2026 | S2B 11:06 UTC, 0 % nubes | T29SPB/T29SQB |
+
+- **La hora no está en el nombre**: se obtiene del catálogo.
+- **Verificación por contenido**: el nombre se puede cambiar a mano, así que la fecha se verifica comparando la imagen con renders de ese día y de los días vecinos (DAT-1). El humo y el frente cambian de un día a otro.
+
+### 3.2 Frecuencia de pasadas (medida en el catálogo, verano 2026)
+
+- **Satélites operativos**: Sentinel-2A, 2B y 2C.
+- **Revisita sobre la península**:
+  - **cada 1-3 días** en Madrid-Ávila y La Mierla (22 pasadas en 5 semanas);
+  - **cada 2-5 días** en Niebla.
+  - Hay días con dos pasadas.
+- **Nubes**: en verano la mayoría de pasadas tiene <5 %, pero hay días del 30-93 %. El humo no cuenta como nube en el catálogo.
+- **Latencia de publicación**: 3-11 h habitualmente, con picos de ~39 h. Como el análisis es a posteriori, no condiciona el diseño.
+
+### 3.3 Georreferenciación automática
+
+Las imágenes llegan sin coordenadas y con el zoom que elija la organización. Se localizan comparándolas con un mosaico Sentinel-2 de referencia:
+
+1. **Zona candidata**: se geocodifica el nombre del lugar (Nominatim) y se busca en un radio de 120 km.
+2. **Pasada gruesa**: mosaico de referencia en EPSG:3857 a 4000 px de ancho; puntos SIFT, ratio test y transformación de similitud con RANSAC.
+3. **Pasada fina**: se vuelve a pedir la referencia sobre el bbox encontrado (+10 % de margen) y se repite el emparejamiento.
+4. **Rechazo**: con menos de 12 inliers o una rotación >1° se devuelve "no georreferenciable". Nunca se inventa un bbox.
+
+Información que se obtiene:
+- **Proyección**: las exportaciones del Copernicus Browser son **Web Mercator (EPSG:3857)**. La proporción ancho/alto en Mercator del bbox encontrado coincide exactamente con la de la imagen (1,617) en las tres escenas.
+- **bbox en lat/lon**, **centro** y **m/px reales**. Con ellos se calculan hectáreas reales y se cruza con cualquier capa SIG.
+
+| Escena | NO (lat, lon) | SE (lat, lon) | Extensión | m/px |
 |---|---|---|---|---|
-| Niebla (Huelva) | 2026-08-08 | 2026-08-07 (id 606000) | `(-6.84125, 37.39963, -6.47903, 37.57739)` | 12.8 |
-| La Mierla (Guadalajara) | 2026-07-21 | 2026-07-16 (id 561620) | `(-3.42055, 40.92521, -2.69614, 41.26286)` | 24.3 |
-| Madrid-Ávila | 2026-07-26 | 2026-07-22 (Navaluenga, id 562592; también Navas del Rey, id 592438, 07-23) | `(-4.93714, 40.13001, -3.48827, 40.81176)` | 12.4 |
+| Niebla | 37.5774, −6.8413 | 37.3996, −6.4791 | 31,9 × 19,7 km | 12,8 |
+| La Mierla | 41.2626, −3.4202 | 40.9251, −2.6960 | 60,6 × 37,5 km | 24,2 |
+| Madrid-Ávila | 40.8117, −4.9370 | 40.1301, −3.4882 | 122,8 × 75,9 km | 12,4 |
 
-Los bbox se obtuvieron emparejando cada JPG con la imagen de Copernicus del mismo día (SIFT + RANSAC, error mediano < 0.3 px). Sirven para desarrollar y validar mientras se integra el módulo de localización.
+**Referencias de mosaico:**
+- **EOX s2cloudless 2025** (WMS público, sin cuenta).
+  - Licencia no comercial: vale para el hackathon.
+  - Es un mosaico anual, no de la fecha exacta.
+- **Process API de Copernicus** (con cuenta).
+  - Render de la fecha exacta con el mismo script de la capa, lo que mejora el emparejamiento.
+  - Permite verificar la fecha (DAT-1).
 
----
+### 3.4 APIs de Copernicus Data Space y qué aportan
 
-## 3. Por qué trabajamos con las bandas originales y no con los JPG
+| API | Uso | Cuenta |
+|---|---|---|
+| Catálogo OData / STAC | Pasadas por fecha y zona, % de nubes, satélite, tesela, hora | No |
+| Sentinel Hub **Process API** | Cualquier bbox, fecha, resolución y script. PNG/JPG o **GeoTIFF con reflectancia** | Sí |
+| Sentinel Hub **Statistical API** | Estadísticas por polígono y fecha sin descargar imágenes (p. ej. NBR medio por pasada) | Sí |
+| Descarga OData/S3 | Producto SAFE completo (~1 GB) | Sí (no hace falta) |
 
-Se exploró primero un pipeline sobre los JPG. Estos son los problemas medidos que lo descartan como base, útiles para justificarlo en la presentación:
+Una vez georreferenciada la imagen, se puede pedir:
+1. **El mismo mosaico del día** a la resolución deseada, para validar el bbox.
+2. **Bandas en reflectancia real** (B2, B3, B4, B8, B8A, B11, B12) en GeoTIFF: NBR, NBR2 y NDVI reales.
+3. **Banda SCL** (clasificación de escena L2A): nubes, sombras, agua, nieve, vegetación y suelo desnudo. Elimina falsos positivos.
+4. **Imagen anterior al incendio**: **dNBR**, la severidad estándar (EMS, BAER).
+5. **Todas las pasadas entre el inicio y la extinción**: evolución diaria del incendio.
+6. **Hectáreas reales y coordenadas de cada píxel**: cruce con carreteras, edificios, Natura 2000, etc.
 
-1. **Sin reflectancias.** En el JPG SWIR (`R = B12, G = B8A, B = B4`) solo es fiable el signo del pseudo-NBR `(G − R)/(G + R)`, no su magnitud, porque depende del estirado de color. No se pueden usar umbrales publicados.
-2. **El humo invierte el signo.** Medido en Madrid-Ávila: lo quemado sin humo da pNBR −0.33 y bajo humo +0.18.
-3. **Saturación y compresión.** R satura a 255 en el fuego, la compresión JPEG usa submuestreo de croma 4:2:0, y al reducir la imagen se pierde ~30 % de los píxeles de fuego (Madrid).
-4. **Falsos positivos de suelo desnudo, campos cosechados y ciudad** con pNBR < 0. Solo se separaban con un umbral de oscuridad frágil (110), que ya dejaba fuera más del 10 % de lo quemado en Niebla.
-5. **Escala variable:** los m/px dependen del zoom de exportación.
+**Cuota**:
+- Se renueva el día 1 de cada mes y no se acumula. La cifra de unos 10.000 PU/mes para Sentinel Hub se debe comprobar en el dashboard.
+- 1 imagen de 2500×1546 con 3 bandas cuesta unos 15 PU.
+- Al superar la cuota, la API responde 403.
 
-Con las bandas originales y una imagen anterior al incendio, todo esto desaparece o tiene una solución estándar (§5).
+### 3.5 Qué devuelve Copernicus
 
-### 3.1 Resultados del prototipo en las tres escenas
+**JPG del Copernicus Browser** (lo que nos da la organización):
+- Contiene solo los píxeles y la fecha en el nombre.
+- Coordenadas, centro y m/px hay que **calcularlos** con la georreferenciación (3.3).
 
-Prototipo con lo descrito en §4–§7 (composición previa de §4.3, semillas + histéresis, limpieza, regla de fuego de §6.1, persistencia, contexto a 500 m), con los focos agrupados a 20 m. Validación contra el **perímetro final oficial de EFFIS**: como un incendio solo crece, lo que detectamos fuera de él es casi seguro un falso positivo.
+**Process API** (con nuestra cuenta). Pedimos un bbox, una fecha y un script, y elegimos el formato:
 
-| Escena | Área quemada | Dentro del perímetro EFFIS | Fuera | Perímetro | Polígonos | Focos activos | Frente activo |
-|---|---|---|---|---|---|---|---|
-| Niebla | 5036 ha | **94.2 %** | 290 ha | 108 km | 21 | 43 | 12.2 km |
-| La Mierla | 28 850 ha | **97.9 %** | 607 ha | 372 km | 66 | 96 | 13.4 km |
-| Madrid-Ávila | 47 660 ha | **97.1 %** | 1363 ha | 1190 km | 195 | 230 | 34.0 km |
+| Formato | Contenido | Uso |
+|---|---|---|
+| **GeoTIFF** (`image/tiff`) | Píxeles + **georreferencia incrustada**: CRS, origen y tamaño de píxel. Admite varias bandas y valores UINT8/UINT16/FLOAT32 | Análisis: cada píxel tiene coordenadas exactas |
+| PNG / JPEG | Solo píxeles; el bbox es el que pedimos | Visualización, referencia para emparejar |
+| JSON (`userdata`) | Metadatos que devuelve el script: **fecha y hora de cada pasada usada**, teselas | Saber de qué pasada sale cada píxel |
+| TAR (varias salidas a la vez) | GeoTIFF + PNG + JSON en una sola petición | Una petición y una sola vez de cuota por escena |
 
-- **La Mierla** coincide casi exactamente con el perímetro de EFFIS. Detectamos el 85 % de su superficie final (28 230 de 33 022 ha), aunque EFFIS puede incluir crecimiento posterior a la captura.
-- **Madrid-Ávila:** detecta bien la zona quemada **bajo el humo del suroeste**, que coincide con EFFIS. Los 120 puntos calientes de la ciudad de Madrid (tejados, industria) se descartan con la regla de contexto (§6.2).
-- **Fuego activo frente a la composición Wildfires** (±1 px a 20 m, cerca de la cicatriz): recall 0.96 (Niebla) y 1.00 (La Mierla); precisión 0.63 y 0.25. Detectamos más píxeles calientes que Wildfires porque nuestra regla es menos estricta (`B12 ≥ 0.5` frente a `B11 + B12 > 1`). Falta decidir con FIRMS cuál de las dos acierta.
-- **Tiempo:** descarga 40–95 s por escena (Niebla y La Mierla); el algoritmo, 1–52 s (Madrid, 6135×3782 px).
+Información que obtenemos de un GeoTIFF y de los metadatos:
+- **Coordenadas de cada píxel**: origen + tamaño de píxel en el CRS pedido. Además, el **bbox**, el **centro** y las **esquinas**.
+- **m/px exactos**: los elegimos nosotros con `resx`/`resy`.
+  - Pidiendo en **UTM (EPSG:32629/32630/32631)** los m/px son metros reales sobre el terreno, y las **hectáreas se calculan sin corrección**.
+  - En Web Mercator hay que multiplicar por cos(lat), como hacemos ahora.
+- **Bandas L2A en reflectancia**:
+  - B01–B12 y B8A;
+  - **SCL** (clases de escena: nube, sombra, agua, vegetación, suelo, nieve);
+  - **CLM/CLP** (máscara y probabilidad de nube);
+  - **dataMask** (dónde no hay dato);
+  - AOT y WVP (aerosoles y vapor de agua);
+  - ángulos del sol y de visión.
+- **Fecha y hora exactas de la toma**: en los metadatos `userdata`. Con dos pasadas el mismo día, sabemos cuál se usó.
 
-**Código de `backend/pipeline/`** (agrupación de focos a 100 m, área medida sobre los polígonos simplificados):
+**Catálogo (STAC/OData, sin cuenta)**, por cada pasada:
+- fecha y hora;
+- satélite (2A/2B/2C);
+- tesela y órbita;
+- **% de nubes**;
+- huella geométrica (qué zona cubre).
 
-| Escena | Área quemada | Perímetro | Polígonos | Focos activos | Frente activo | Tiempo (sin caché) |
-|---|---|---|---|---|---|---|
-| Niebla | 5154 ha | 116 km | 14 | 31 | 12.8 km | 30 s |
-| La Mierla | 29 584 ha | 383 km | 40 | 76 | 14.8 km | 82 s |
-| Madrid-Ávila | 49 305 ha | 1230 km | 127 | 180 | 39.6 km | 407 s |
+**Statistical API**: JSON con estadísticas por polígono e intervalo (media, desviación, percentiles, histograma), sin descargar imágenes. Sirve para la serie temporal del NBR medio de la zona quemada.
 
-La severidad coincide con el prototipo. El área sale un 2–3 % mayor porque se mide sobre los polígonos simplificados y no contando píxeles.
+**Límites de la Process API**:
+- Máximo **2500 × 2500 px por petición**: las zonas grandes se piden por teselas.
+- **Coste en PU**: proporcional a los píxeles × bandas / 3, y ×2 si los valores son FLOAT32.
 
-**Problemas que quedan:**
-1. **Focos todavía fragmentados:** agrupar a 100 m baja de 230 a 180 focos en Madrid, pero siguen saliendo muchos focos pequeños (§6.2).
-2. **Perímetro inflado en escenas grandes:** 1190 km en Madrid por 195 polígonos con bordes muy irregulares (§7).
-3. **3–6 % fuera de EFFIS** en Niebla y Madrid: falta revisar si son bordes, cosechas o errores de EFFIS.
+### 3.6 Credenciales
 
-### 3.2 Primeras medidas en Niebla con fechas sueltas
+Cliente OAuth de Copernicus Data Space (client credentials), leído del `.env` de la raíz (ignorado por git):
 
-Prueba con la rejilla de §4.1 (1600×986 px a 20 m) e imágenes anteriores del 08-05, 07-24 y 06-29:
+```
+COPERNICUS_CLIENT_ID=...
+COPERNICUS_CLIENT_SECRET=...
+```
 
-| Medida | Resultado |
-|---|---|
-| dNBR fuera del incendio (percentil 95) | 0.13 con la imagen del 08-05, 0.15 con la del 07-24, 0.21 con la del 06-29 |
-| NBR antes del incendio dentro de la cicatriz | 0.20 (08-05), 0.19 (07-24): el 08-05 todavía no había ardido (EFFIS da inicio el 08-07) |
-| Área con semillas `dNBR > 0.27` | 2739 ha |
-| Área con semillas + histéresis `dNBR > 0.1` + limpieza (≥ 5 ha) | 5079 ha (una componente de 5023 ha y 5 pequeñas) |
-| Perímetro exterior | 118 km sin simplificar, 108 km con Douglas-Peucker a 20 m |
-| Agujeros | 709, casi todos diminutos |
-| Severidad (ha) | baja 2346, moderada-baja 2105, moderada-alta 484, alta 144 |
-| SCL | 94 % vegetación, 1.2 % nube media; **el humo casi no sale como nube** |
-
-Conclusiones:
-- El mapa de dNBR delimita la cicatriz con mucha nitidez y es casi 0 fuera. El frente activo queda dentro de la máscara sin pasos extra (§5.3, paso 4).
-- **Cuanto más antigua es la imagen anterior, más ruido** (la vegetación se seca en verano y sube el dNBR fuera del incendio). Hay que usar la más reciente que sea válida (§4.3).
-- La histéresis **crece hacia la zona con humo del norte y el noreste** en forma de dedos finos. Puede ser quemado real bajo el humo o no; hay que comprobarlo contra la anotación manual (§5.4).
-- Los fuegos activos, en §6.1.
-
-**Lecciones de esa exploración que siguen valiendo:**
-- **Otsu global sobre un índice de quemado no sirve:** el histograma es unimodal porque lo quemado es una fracción pequeña de la escena. Marcaba el 56–70 % de la imagen.
-- **Un cierre morfológico global grande rellena bahías de vegetación sana** e infla el área. Los cierres deben ser pequeños o locales.
-- **Los focos activos necesitan contexto espacial:** en Madrid solo el 24 % de los píxeles "calientes" estaban cerca de la cicatriz; el resto eran la ciudad.
-- **Entre la cicatriz y el frente puede haber terreno quemado bajo humo:** cualquier restricción por distancia debe ser generosa (varios cientos de metros).
-- **Los umbrales se validan en todas las escenas**, nunca mirando una sola.
-
----
-
-## 4. Datos que descargamos de CDSE
-
-### 4.1 Colección, bandas y rejilla
-
-- Colección: **Sentinel-2 L2A** (reflectancia de superficie, corregida atmosféricamente).
-- API: **Process API** de Sentinel Hub en CDSE (`https://sh.dataspace.copernicus.eu/api/v1/process`), salida GeoTIFF `UINT16`. No hace falta el catálogo: la composición previa (§4.3) elige las fechas dentro del evalscript.
-- Bandas: `B04` (rojo), `B08` (NIR 10 m), `B8A` (NIR estrecho 20 m), `B11` (SWIR 1.6 µm), `B12` (SWIR 2.2 µm), `SCL` (clasificación de escena) y `dataMask`.
-- **Rejilla de trabajo:** el mismo bbox en EPSG:4326, con `width`/`height` calculados para **20 m/px** (resolución nativa de B8A, B11 y B12). Así la rejilla es la misma para todas las fechas y se convierte linealmente a píxeles de la imagen original. `upsampling` y `downsampling: NEAREST` para no mezclar la SCL.
-- **Descarga robusta** (con teselas grandes y `FLOAT32` el servidor devolvía errores 502 y respuestas cortadas):
-  - Teselas de **1000×1000 px como máximo**, 4 en paralelo.
-  - Salida **`UINT16`** con la reflectancia × 10 000 (la mitad de datos que `FLOAT32`), y se divide al leer.
-  - Reintentos con espera creciente por tesela; si una tesela falla tras los reintentos, error claro.
-  - Caché en disco por escena, fechas y resolución, para no descargar dos veces.
-
-### 4.2 Imagen posterior (la de la escena)
-
-La adquisición de `acquisition_date` sobre el bbox. Es la misma captura que el JPG de entrada.
-
-### 4.3 Imagen anterior al incendio
-
-Necesaria para el dNBR (§5.1). **Composición píxel a píxel:** para cada píxel, la observación **más reciente sin nubes** en los **30 días anteriores a `fire_start`**. Se hace en una sola petición con un evalscript multitemporal (`mosaicking: "ORBIT"`, escenas ordenadas de más reciente a más antigua; se devuelve la primera muestra con `dataMask = 1` y SCL fuera de las clases 0, 1, 3, 8, 9, 10). El evalscript devuelve además una banda con la **antigüedad en días** de la observación usada.
-
-**Por qué así:**
-- **Termina antes del incendio** (`fire_start − 1`), así que la imagen no puede mostrar el incendio. Una imagen de mitad del incendio solo mostraría lo quemado entre las dos fechas.
-- **Lo más reciente posible:** con imágenes más antiguas aumenta el ruido estacional (§3.2).
-- **Escenas grandes y nubes:** una sola pasada del satélite no cubre toda la escena de Madrid (falta el 37 %), y una fecha con nubes parciales no se descarta entera.
-- **Descartado:** elegir una fecha entera comprobando si "ya estaba quemado" con el NBR de la imagen posterior. El NBR < 0 de verano incluye suelo seco y campos de toda la escena, y rechazaba todas las fechas.
-
-Resultado en las tres escenas: cobertura del 100 %, antigüedad mediana de 1–3 días y percentil 90 de 2–6 días.
-
-Si algún píxel no tiene observación válida en la ventana, se excluye como "no evaluable" (§5.2). Registrar en la salida la ventana usada y la cobertura.
+Los tests nunca llaman a servicios reales: reproducen respuestas grabadas (`RECORD_HTTP=1` para regrabarlas).
 
 ---
 
-## 5. Área quemada (reto básico)
+## 4. Arquitectura
 
-### 5.1 Índices
-
-- `NBR = (B8A − B12) / (B8A + B12)`: el índice estándar de área quemada. La vegetación sana refleja mucho en el NIR y poco en el SWIR; al quemarse cae el NIR y sube el SWIR.
-- `dNBR = NBR_pre − NBR_post`: cambio entre antes y después. Lo que no ha cambiado (suelo desnudo, ciudades, cultivos ya secos) queda cerca de 0, y eso elimina los falsos positivos principales del enfoque con JPG.
-- `NBR2 = (B11 − B12) / (B11 + B12)` y `dNBR2`: usan solo bandas SWIR, que atraviesan el humo mucho mejor que el NIR. Candidato para la zona bajo humo (§5.4).
-
-### 5.2 Máscaras de exclusión (SCL)
-
-Se excluyen, en la imagen anterior **o** en la posterior: sin datos (0), saturado/defectuoso (1), sombra de nube (3), agua (6), nubes de probabilidad media y alta (8, 9) y cirros (10). La sombra topográfica (2) no se excluye, pero hay que vigilarla en la validación. Los píxeles excluidos no cuentan como quemados ni como no quemados; se suman a la zona "no evaluable" de la salida.
-
-Ojo: la SCL puede clasificar el humo denso como nube. Se trata en §5.4.
-
-### 5.3 Detección
-
-1. **Semillas:** `dNBR > 0.27` (umbral de severidad moderada-baja de Key & Benson, 2006; ver §5.5). Son píxeles quemados con alta seguridad.
-2. **Crecimiento por histéresis:** añadir los píxeles conectados a una semilla con `dNBR > 0.1` (límite inferior de "quemado, severidad baja" de la misma tabla). Esto recoge los bordes del incendio sin aceptar píxeles débiles aislados. En la exploración con JPG la histéresis crecía hacia vegetación sana, pero allí el índice estaba sesgado por el humo y el estirado; con dNBR sobre reflectancias hay que volver a medirla.
-3. **Limpieza:** apertura de radio 1 px (20 m) y descarte de componentes de menos de una **superficie mínima en hectáreas** (`config.py`, valor inicial 5 ha, a ajustar con la validación). Sin cierres grandes (§3). Rellenar los **agujeros de menos de una superficie mínima** (`config.py`, valor inicial 1 ha): en Niebla salen 709 agujeros, casi todos de unos pocos píxeles, que no son islas reales.
-4. **Frente activo:** los píxeles de fuego activo tienen B12 muy alto, así que su NBR es muy negativo y su dNBR alto. Ya quedan dentro de la máscara sin ningún paso extra. Comprobarlo en la validación.
-5. **Cambios que no son incendio:** una cosecha o un desbroce entre las dos fechas también sube el dNBR. Se controla con el tamaño mínimo y con la forma (las parcelas son rectangulares y aisladas). Si aparecen en la validación, medir un filtro de forma, pero no añadirlo antes.
-
-### 5.4 Humo
-
-1. **Detección del humo:** velo con reflectancia alta en el visible (B04) respecto al SWIR (B12) en la imagen posterior, que no está en la anterior. Umbrales en `config.py`, medidos contra la anotación manual. Incluye lo que la SCL marque como nube (8, 9) si está pegado al incendio. No se puede depender solo de la SCL: en Niebla el humo casi no sale como nube (§3.2).
-2. **Bajo el humo:** en Madrid-Ávila el dNBR ya detecta la zona quemada bajo el humo del suroeste y coincide con EFFIS (§3.1), así que con humo poco denso no hace falta nada especial. Para humo denso, medir si `dNBR2` separa quemado de no quemado bajo el humo (el SWIR atraviesa el humo). Si funciona en las escenas con humo (Madrid suroeste, Niebla noreste, La Mierla norte), se usa ahí en lugar de dNBR, con sus propios umbrales. Si no, la zona de humo contigua al incendio se devuelve como **"bajo humo, sin evaluar"** y no se suma al área quemada.
-
-### 5.5 Severidad
-
-Clases de dNBR de Key & Benson (2006), estándar del USGS, calculadas sobre la máscara final:
-
-| dNBR | Clase |
-|---|---|
-| 0.10 – 0.27 | Baja |
-| 0.27 – 0.44 | Moderada-baja |
-| 0.44 – 0.66 | Moderada-alta |
-| > 0.66 | Alta |
-
-Se reporta la superficie (ha) de cada clase. La tabla original se definió con Landsat; documentar que se aplica a Sentinel-2 con B8A/B12, que es lo habitual en la bibliografía.
+- **Backend**: Python con tipos y FastAPI (sin `jsonify`).
+  - El pipeline de detección y georreferenciación es una librería pura (`numpy`, `opencv`).
+  - La API solo lo envuelve.
+- **Frontend**: React + TS.
+  - Componentes que solo reciben props; la lógica va en hooks.
+  - Llamadas a la API por `client.ts`.
+  - i18n solo en español.
+  - Skeletons mientras carga y modales que se cierran con Escape.
+- **Mapa**: MapLibre GL JS.
 
 ---
 
-## 6. Fuego activo (reto avanzado)
+## 5. Specs obligatorias del reto
 
-### 6.1 Detección por píxel
+| ID | Spec | Criterio de aceptación |
+|---|---|---|
+| OB-1 | Entrada: True Color + SWIR obligatorios, del mismo tamaño; Wildfire no se exige | Tamaños distintos → 422; acepta 60 MP |
+| OB-2 | Máscara de zona afectada: pseudo-NBR (o NBR real si hay bandas) + oscuridad en TC, umbral adaptativo por escena, limpieza morfológica, exclusión de agua/urbano/suelo/nubes | IoU ≥ 0,80 en Niebla y Ávila; ≥ 0,70 en La Mierla; 0 px en el casco de Madrid y en embalses |
+| OB-3 | Perímetro vectorial (polígonos con agujeros, multipolígono), simplificado | Rasterizado ≈ máscara (IoU ≥ 0,98); polígonos válidos |
+| OB-4 | Focos activos: B12 casi saturado, R ≫ G, brillo alto; agrupados en focos con centroide, bbox y área | Recall ≥ 0,80 y precisión ≥ 0,70 por foco frente al Wildfire; 0 focos en urbano o suelo claro |
+| OB-5 | Overlay sobre la imagen original: perímetro, relleno, focos, leyenda; exportable a PNG | Distinguible sin depender del color |
+| OB-6 | Automatización de principio a fin sin cambiar parámetros entre escenas | Determinista; las 3 escenas con el mismo pipeline |
+| OB-7 | Justificación técnica visible: umbrales calculados por escena y método | Incluida en la respuesta del análisis |
 
-Sobre la imagen posterior en reflectancia, a 20 m:
-
-- **Física:** el fuego emite mucho en el SWIR (sobre todo a 2.2 µm, B12) y casi nada en el NIR (B8A), así que el cociente `B12/B8A` es muy alto.
-- **Regla:** `B12 ≥ 0.5` y `B12/B8A ≥ 2.5` (valores iniciales en `config.py`). Medido en Niebla:
-
-  | Tipo de píxel | B12 (mediana) | B12/B8A (p10 – p90) |
-  |---|---|---|
-  | Frente activo | 1.40 | 4.6 – 9.1 |
-  | Interior de la cicatriz (ceniza) | 0.24 | 1.5 – 1.8 |
-  | Suelo desnudo claro en cultivos | 0.50 | 1.0 – 1.3 |
-
-  El umbral de 2.5 está en el hueco entre la ceniza (≤ 1.8) y el frente (≥ 4.6). Con `B12 ≥ 0.5` y los cocientes, ningún píxel caliente aparece también en la imagen anterior.
-- **Reglas descartadas:**
-  - Adaptación directa de Murphy et al. (2016) (`B12/B8A ≥ 1.4`, `B11/B8A ≥ 1.4`, `B12 ≥ 0.15`): marca 20 555 px, casi todos ceniza del interior de la cicatriz.
-  - `B11 + B12 > 1.0` (composición Wildfires de Pierre Markuse): marca suelo desnudo claro en cultivos lejos del incendio; 4411 de esos píxeles ya estaban "calientes" en la imagen anterior.
-- Validar los umbrales en las otras escenas antes de darlos por buenos (§10).
-
-### 6.2 De píxeles a focos
-
-1. **Agrupación:** unir los píxeles calientes a menos de una **distancia de agrupación** (`config.py`, valor inicial 100 m) en un mismo foco, para decidir por foco y no por píxel. Con una dilatación de solo 1 px (20 m) salían 230 focos en Madrid, muchos de 1–2 px (§3.1).
-2. **Persistencia (descarta fuentes de calor fijas):** si el mismo foco también aparece caliente en la imagen anterior, es una fuente permanente (industria, antorchas de gas, suelo o tejados muy reflectantes) y se descarta. Un incendio no está en el mismo sitio días antes. En Niebla, esta prueba elimina los falsos positivos de los cultivos con la regla `B11 + B12 > 1.0` (§6.1).
-3. **Contexto:** un foco es válido si está dentro de la máscara quemada o a menos de una **distancia máxima** de ella (`config.py`, en metros; generosa, del orden de 500 m, por el humo entre la cicatriz y el frente). Los focos que no cumplen se descartan y no aparecen en la salida. Limitación conocida: un incendio que acaba de empezar y todavía no tiene cicatriz se descartaría.
-4. **Descripción de cada foco:** centroide, número de píxeles, superficie, bounding box y longitud aproximada de frente (eje mayor de la componente).
-5. **Longitud total del frente activo:** suma de las longitudes de los focos válidos.
+Las métricas son objetivos iniciales: se fijan tras la primera medición base y no se bajan después.
 
 ---
 
-## 7. Vectorización y medidas
+## 6. Georreferenciación y Copernicus
 
-1. **Polígonos:** `rasterio.features.shapes` (conectividad 8) sobre la máscara final, que conserva los agujeros (islas no quemadas). Pasar a lon/lat con la transformación de la rejilla (§4.1) y construir un `shapely` `MultiPolygon`.
-2. **Simplificación:** Douglas-Peucker con tolerancia de **20 m** (un píxel), aplicada en coordenadas de píxel antes de pasar a lon/lat (los píxeles de la rejilla son cuadrados en metros). Sin simplificar, el contorno de un ráster infla el perímetro hasta ~×1.27 por el efecto escalera.
-3. **Superficie y perímetro:** cálculo geodésico con `pyproj.Geod` sobre los polígonos simplificados. Superficie en hectáreas y perímetro en km.
-4. **Superficie efectiva:** el área del polígono **sin** los agujeros. El perímetro es el del contorno exterior.
-5. **Perímetro en escenas grandes:** en Madrid salen 195 polígonos y 1190 km de perímetro (§3.1), porque los bordes irregulares y las manchas pequeñas suman mucho. Medir dos opciones y quedarse con la que dé un perímetro comparable al de EFFIS: (a) unir polígonos separados menos de 40 m (2 px) antes de vectorizar; (b) reportar además el perímetro solo de los polígonos de más de una superficie mínima (p. ej. 50 ha).
-6. **Coordenadas de imagen:** cada vértice también en píxeles de la imagen original, por interpolación lineal con `bbox` e `image_size`.
+| ID | Spec | Test (outcome) | Estado |
+|---|---|---|---|
+| GEO-1 | Conversión lon/lat ↔ EPSG:3857 | Valores de referencia conocidos | ✅ |
+| GEO-2 | Emparejar una imagen con una referencia y devolver su bbox | Un recorte con zoom de una textura sintética devuelve su bbox con error < 2 px | ✅ |
+| GEO-3 | Rechazo si no es fiable | Imagen de otra zona → `GeoreferenceError` | ✅ |
+| GEO-4 | Mosaico de referencia por teselas WMS | Teselas cosidas sin saltos, también en los bordes irregulares | ✅ |
+| GEO-5 | Localizar una escena desde el nombre del lugar (gruesa + fina) | Niebla, La Mierla y Madrid-Ávila: centro a < 500 m y m/px ±3 % | ✅ |
+| GEO-6 | Endpoint `POST /api/georeference` (imagen + lugar) → `date`, `bbox` (oeste, sur, este, norte), `image_size` (ancho, alto), centro, m/px, inliers | Contrato de la API; archivo no imagen → 422 `invalid_image`; lugar no encontrado → 422 `place_not_found`; no localizable → 422 `georeference_failed` | ✅ |
+| GEO-7 | Robustez a recorte y zoom | Recortes del 30-100 % y escalas de 0,5-2× recuperan el bbox | Pendiente |
+| CDS-1 | OAuth client credentials desde `.env` | Las credenciales se canjean por un `access_token` | ✅ |
+| CDS-2 | Render Process API: bbox + fecha + script (TC, SWIR, Wildfires) | Respuesta grabada → imagen del tamaño pedido | Pendiente |
+| CDS-3 | Bandas en reflectancia + SCL + dataMask en GeoTIFF UTM | Reflectancia en [0,1], SCL, máscara y transform UTM leídos del GeoTIFF | ✅ |
+| CDS-4 | Pasadas disponibles por bbox y rango de fechas (catálogo) | En orden cronológico, con satélite, tesela, % de nubes y EPSG | ✅ |
+| DAT-1 | Fecha leída del nombre (✅; exportaciones de varios días → 422 `multi_day_export`) y verificada por contenido (pendiente) | La fecha correcta encaja mejor que la del día anterior y la del siguiente | Parcial |
+| CLS-1 | Máscara SCL aplicada a la detección | Píxeles de agua o nube en SCL nunca son quemado ni foco | Pendiente |
+| SEV-1 | Severidad dNBR con clases USGS y ha por clase | Par sintético antes/después → clases esperadas | Pendiente |
+| SEV-2 | Elección automática de la imagen anterior al incendio | La más reciente con pocas nubes sobre el bbox | Pendiente |
 
----
+### ⚠️ Aviso para quien consume `POST /api/georeference` (área, hectáreas, perímetro)
 
-## 8. Salida
-
-Un único resultado tipado (modelo pydantic `FireAnalysis` en `models.py`) que se serializa a este JSON. `smoke_unassessed` todavía no está implementado (§5.4):
+Respuesta (ejemplo Niebla):
 
 ```json
 {
-  "scene": {
-    "acquisition_date": "2026-08-08",
-    "pre_fire_window": ["2026-07-08", "2026-08-06"],
-    "pre_fire_coverage": 1.0,
-    "pre_fire_median_age_days": 2.0,
-    "bbox": [-6.84125, 37.39963, -6.47903, 37.57739],
-    "image_size": [2500, 1546]
-  },
-  "burned_area": {
-    "polygons": [
-      {
-        "exterior": { "lonlat": [[lon, lat], "..."], "pixel": [[x, y], "..."] },
-        "holes": [ { "lonlat": [[lon, lat], "..."], "pixel": [[x, y], "..."] } ]
-      }
-    ],
-    "area_ha": 1240.5,
-    "perimeter_km": 18.6,
-    "severity_ha": { "low": 250.1, "moderate_low": 420.3, "moderate_high": 380.0, "high": 190.1 }
-  },
-  "smoke_unassessed": {
-    "polygons": [ { "exterior": { "lonlat": [], "pixel": [] }, "holes": [] } ],
-    "area_ha": 310.0
-  },
-  "not_assessable_ha": 12.4,
-  "active_fires": [
-    {
-      "id": 1,
-      "centroid": { "lonlat": [lon, lat], "pixel": [x, y] },
-      "bbox_pixel": [x0, y0, x1, y1],
-      "pixels": 32,
-      "area_ha": 1.3,
-      "front_length_km": 1.2
-    }
-  ],
-  "active_front_km": 4.8,
-  "geojson": { "type": "FeatureCollection", "features": [] }
+  "date": "2026-08-08",
+  "bbox": [-6.84116, 37.39951, -6.47896, 37.57728],
+  "image_size": [2500, 1546],
+  "centre_lon": -6.66006,
+  "centre_lat": 37.48845,
+  "metres_per_px": 12.8,
+  "inliers": 231
 }
 ```
 
-- `pixel` está en coordenadas de la **imagen original** (la que recibe el usuario), `lonlat` en EPSG:4326.
-- `geojson` contiene el área quemada (MultiPolygon con agujeros, con `area_ha`, `perimeter_km` y `severity_ha`) y los focos como puntos con sus propiedades. La zona bajo humo se añadirá cuando se implemente.
-- `not_assessable_ha`: superficie excluida por nubes, sombras o falta de datos (§5.2).
+- **`bbox`**:
+  - Orden `(oeste, sur, este, norte)` = `(min_lon, min_lat, max_lon, max_lat)`, en grados EPSG:4326.
+  - Cubre la imagen **de borde a borde**: es la transformación de las esquinas (0,0) y (ancho, alto).
+- **La imagen está en Web Mercator (EPSG:3857), no en lon/lat.**
+  - Las columnas son lineales en longitud.
+  - Las filas **no** son lineales en latitud.
+  - Para pasar de píxel a coordenadas:
+    1. Convertir el bbox a EPSG:3857.
+    2. Interpolar linealmente en metros Mercator.
+    3. Volver a lon/lat.
+  - Si se interpola la latitud linealmente:
+
+    | Escena | Error máximo |
+    |---|---|
+    | Niebla | 0,5 px |
+    | Madrid-Ávila | **7,8 px** |
+
+- **`metres_per_px` es el valor en el centro de la imagen.**
+  - En Mercator el tamaño real del píxel cambia con la latitud: un 0,24 % de norte a sur en Niebla y un **1 %** en Madrid-Ávila.
+  - Multiplicar píxeles por `metres_per_px²` da un error de ese orden en las hectáreas.
+- **Para hectáreas exactas, usar el GeoTIFF de Copernicus en UTM** (`backend/libs/copernicus/process.py`, `fetch_bands` con el `bbox` de la respuesta):
+  - cada píxel mide exactamente `resolution_m × resolution_m` (a 20 m, **0,04 ha por píxel**);
+  - el `transform` da las coordenadas UTM de cada píxel.
+- **`date`**: fecha de toma (`YYYY-MM-DD`) leída del nombre del archivo. Una exportación de varios días se rechaza con 422 `multi_day_export`.
+- **`image_size`**: `(ancho, alto)` de la imagen original. Sirve para dibujar el perímetro en píxeles encima de la foto.
+- **El incendio puede salirse del bbox de la foto.** En Niebla, el 13-08 ya excedía el encuadre del 08-08. Para la evolución diaria hay que analizar una zona mayor que la foto.
 
 ---
 
-## 9. Estructura del código
+## 7. Incendio y evolución diaria
 
-Implementado en `backend/pipeline/` (rama `algorithm`, sobre el backend de `feature/backend-fire-data`):
+Cada incendio tiene **una pestaña** con todo su historial.
 
-```
-backend/pipeline/
-  config.py         Parámetros en un dataclass, en unidades físicas, cada uno con su justificación o referencia
-  grid.py           Rejilla de trabajo a 20 m sobre el bbox y conversión a píxeles de la imagen original
-  bands.py          Bandas en reflectancia (posterior y composición previa)
-  copernicus.py     OAuth, Process API por teselas con reintentos y caché, evalscripts (§4)
-  indices.py        NBR, dNBR, píxeles evaluables (SCL), firma de fuego activo
-  burned_area.py    Semillas, histéresis, limpieza, relleno de agujeros, severidad (§5)
-  active_fire.py    Agrupación, persistencia y contexto de focos (§6)
-  vectorize.py      Máscara → polígonos simplificados, superficie y perímetro geodésicos (§7)
-  models.py         Entrada (SceneInput) y salida (FireAnalysis) en pydantic (§2, §8)
-  pipeline.py       Orquestación: entrada → resultado
-  __main__.py       `uv run python -m pipeline pipeline/scenes/niebla.json`
-  scenes/           Entradas de las tres escenas de ejemplo
-```
+**Modelo de datos:**
+- **Incendio**: nombre, bbox, municipios, fecha de inicio, fecha de extinción y fuente oficial.
+- **Observaciones (N)**: fecha y hora, satélite, tesela, % de nubes sobre el bbox, capas y si se usa o se descarta (con el motivo).
+- **Análisis diario**: perímetro, zona quemada, focos, severidad, afecciones y calidad del dato.
+- **Cambios entre días**: ha nuevas, sectores de avance, focos nuevos o apagados, nuevas afecciones.
+- **Informe final**: consolidado con dNBR, daños y riesgos posteriores.
 
-- Python 3.13 (el del backend) con tipos (built-ins: `list[int]`, `dict[str, float]`…).
-- Dependencias, las del backend más `pyproj`: `numpy`, `scipy`, `rasterio`, `shapely`, `httpx`, `pydantic`.
-- Credenciales en variables de entorno `CDSE_CLIENT_ID` y `CDSE_CLIENT_SECRET` (`backend/.env`, ver `.env.example`).
-- **Pipeline puro**: las funciones de detección reciben arrays y devuelven arrays/resultados tipados. Solo `copernicus.py` habla con la red.
-- Orden de ejecución: descarga posterior y composición previa (en paralelo) → píxeles evaluables → dNBR → área quemada → fuego activo → vectorización → estadísticas.
-- **Pendiente de implementar:** humo (§5.4), unión de polígonos cercanos para el perímetro (§7.5) y tests (§10.5).
+**Calidad del dato por día:**
+- **Imagen de alta resolución**: día con pasada útil de Sentinel-2.
+- **Estimación**: día sin pasada útil. Hereda el perímetro anterior y añade los focos térmicos históricos (archivo de NASA FIRMS, VIIRS 375 m) para reconstruir el avance.
+- **Descartada**: nubes o humo sobre el bbox. Se indica el motivo; nunca se inventa el dato.
 
----
-
-## 10. Validación
-
-1. **Referencias:**
-   - **Anotación manual** del área quemada de las tres escenas (máscaras en `backend/tests/fixtures/`), con tres clases: quemado, no quemado y **dudoso** (sobre todo bajo humo). Lo dudoso se excluye de las métricas.
-   - **Perímetros oficiales** de EFFIS o Copernicus EMS para esas fechas, si existen.
-   - **Fuego activo:** la composición Wildfires de Niebla y La Mierla (usar solo sus píxeles cerca del incendio, porque la extracción por color tiene ruido) y los focos térmicos de NASA FIRMS (VIIRS, 375 m, a otra hora: solo como referencia de ubicación).
-2. **Métricas:**
-   - **Fracción de nuestra área dentro del perímetro final de EFFIS** (aproxima la precisión: el incendio solo crece). Valores actuales: 94–98 % (§3.1). Hay que comparar con **todos** los incendios de EFFIS que tocan la escena hasta la fecha de captura, no solo con el principal: en Madrid-Ávila, incluir El Barraco y otros pequeños sube el valor del 94.2 % al 97.1 %.
-   - Fracción del área de EFFIS que detectamos (aproxima el recall; puede quedarse corta si EFFIS incluye crecimiento posterior a la captura).
-   - IoU y F1 contra la anotación manual.
-   - Precisión y recall de los focos con tolerancia de ±2 px contra Wildfires y FIRMS.
-3. **Generalización:** ningún parámetro se ajusta mirando una sola escena. Leave-one-scene-out: ajustar con dos y medir en la tercera.
-4. **Escenas nuevas:** 2–3 incendios adicionales (fecha y bbox) que no se usen para ajustar. Es lo más parecido a lo que hará el jurado.
-5. **Tests automatizados** (regla 27, solo lo crítico): por escena, con las bandas guardadas como fixtures, IoU contra la anotación por encima de un mínimo y recall de focos por encima de un mínimo.
+| ID | Spec | Test (outcome) |
+|---|---|---|
+| INC-1 | Crear un incendio con bbox y fecha de inicio (a mano o desde una imagen georreferenciada) | Incendio sin observaciones |
+| INC-2 | Poblar las observaciones desde el catálogo entre el inicio y la extinción | Respuesta grabada → observaciones esperadas |
+| INC-3 | Descartar por nubes o humo sobre el bbox, no sobre la tesela | Bbox cubierto al 70 % → descartada con el motivo |
+| INC-4 | Análisis diario con su etiqueta de calidad | Día sin pasada → "estimación" que hereda el último perímetro |
+| INC-5 | Cambios entre días | Dos perímetros sintéticos → ha nuevas exactas y sector correcto |
+| INC-6 | Focos FIRMS históricos asignados al día correcto | Respuesta grabada; UTC frente a hora local |
+| INC-7 | Informe final consolidado | dNBR entre la imagen anterior y la última |
 
 ---
 
-## 11. Roadmap
+## 8. Impacto y valores afectados
 
-Las tareas pendientes, por prioridad, están en `to_do.md`.
+Las referencias son Copernicus EMS (delimitación y grading), EFFIS (cruce con CORINE y Natura 2000) y BAER (valores en riesgo, severidad y erosión).
+
+| Bloque | Contenido | Fuente |
+|---|---|---|
+| Ficha | Fechas, municipios, superficie, perímetro | Análisis + IGN (límites) |
+| Severidad | Clases dNBR y ha por clase | Copernicus |
+| Usos del suelo | ha de arbolado, matorral, agrícola, urbano | CORINE, SIOSE, Mapa Forestal |
+| Espacios protegidos | ha en Natura 2000 y ENP | MITECO, EEA |
+| Carreteras | km afectados por tipo; tramos dentro o en el borde del perímetro | IGN (BTN, CartoCiudad), OSM |
+| Cortes de carreteras | Estado: **afectada** (calculado) / **corte confirmado** (DGT) | DGT NAP DATEX II v3.6 (sin Cataluña, País Vasco ni diputaciones: "sin dato de corte") |
+| Edificios | Recuento dentro y en la franja del perímetro | Catastro INSPIRE, OSM |
+| Población | Habitantes dentro y cerca del perímetro | INE (rejilla), GHSL |
+| Infraestructura crítica | Líneas eléctricas, ferrocarril, captaciones, depuradoras, hospitales, colegios | OSM, REE |
+| Riesgos posteriores | Erosión (severidad × pendiente), ceniza hacia embalses y cauces aguas abajo | IGN MDT, hidrografía IGN/Confederaciones |
+| Contexto | Viento y temperatura durante el incendio | AEMET OpenData, ERA5 |
+| Validación | Perímetro oficial | EFFIS, Copernicus EMS |
+
+| ID | Spec | Test (outcome) |
+|---|---|---|
+| INF-1 | Carreteras afectadas: km por tipo y estado | Perímetro y red sintéticos → km exactos |
+| INF-2 | Edificios y población dentro y en la franja | Geometrías sintéticas → recuentos exactos |
+| INF-3 | Infraestructura crítica afectada | Elementos sintéticos dentro y fuera → solo los de dentro |
+| AMB-1 | ha por uso del suelo y en Natura 2000 | Polígonos sintéticos → ha exactas |
+| RIE-1 | Riesgo de erosión y avisos aguas abajo | Severidad alta + pendiente alta + embalse aguas abajo → aviso |
+| VAR-1 | Valores afectados por categoría y prioridad (vidas, vulnerables, vías, infraestructura, economía, medio ambiente, patrimonio) | Agregados por municipio coherentes con INF/AMB |
+
+Las fuentes externas se testean con respuestas grabadas, y los cruces geométricos con geometrías sintéticas de resultado exacto.
 
 ---
 
-## 12. Fuera de alcance
+## 9. Presentación de la información
 
-- Localizar la imagen de entrada (bbox y fecha): otro módulo.
-- API, frontend, render de la imagen, textos y resumen para el usuario.
-- Entrenar redes neuronales: no hay etiquetas y no compensa en 48 h.
-- Seguimiento de la evolución del incendio a lo largo de varias fechas (solo usamos la imagen anterior como referencia).
+**Usuarios:**
+- **Ciudadano**: ¿afectó a mi municipio o a mis carreteras?
+- **Ayuntamiento y Protección Civil**: daños, vías e infraestructuras.
+- **Técnico forestal**: severidad, erosión y restauración.
+- **Periodista**: cifras fiables y fechadas.
+- **Administración y aseguradoras**: daños por municipio.
+
+**Tres niveles de detalle:**
+1. **Resumen** (se entiende en 10 segundos):
+   - superficie,
+   - municipios,
+   - días de duración,
+   - valores afectados en una frase,
+   - buscador "¿Me afectó?" por dirección o municipio.
+2. **Mapa interactivo**:
+   - capas activables (focos, perímetro, severidad, carreteras, edificios, usos del suelo, protegidos);
+   - línea de tiempo por día con su calidad de dato;
+   - comparador del día N con el N−1;
+   - reproducción de la evolución;
+   - vista en tabla equivalente.
+3. **Detalle técnico e informe**: método, confianza, cifras exactas; exportación a PDF y GeoJSON por municipio.
+
+**Reglas de comunicación:**
+- Frases antes que métricas, cifras redondeadas en el resumen y exactas en el detalle.
+- Cada dato lleva su **fecha y fuente**.
+- La incertidumbre se explica.
+- **Accesibilidad**:
+  - el nivel se transmite con texto + icono + patrón + color, nunca solo con color;
+  - contraste AA y navegación completa por teclado;
+  - resumen textual para lector de pantalla;
+  - textos en i18n (español).
+
+| ID | Spec | Test (outcome) |
+|---|---|---|
+| MAP-1 | Mapa con capas, línea de tiempo y comparador | Al elegir un día se sincronizan el mapa y el informe, también con teclado |
+| MAP-2 | Vista tabla equivalente al mapa | Mismos elementos; axe sin violaciones |
+| REP-1 | Informe PDF/GeoJSON por día y final | GeoJSON válido; cifras iguales a las del análisis |
+| UX-1 | Buscador "¿Me afectó?" | Dirección dentro del perímetro → respuesta con la fecha y la fuente |
+
+---
+
+## 10. Mejoras
+
+**Zona afectada**
+- Fusión de señales en un score continuo en lugar de una sola regla.
+- Superpíxeles (SLIC) para reducir el ruido JPG.
+- Random Forest / LightGBM con validación *leave-one-scene-out*.
+- Niveles de severidad.
+
+**Fuego activo**
+- Detección contextual (estilo MODIS/VIIRS): el píxel destaca frente a su vecindario, no frente a un umbral global.
+- Prior espacial: los focos aparecen en el borde de la zona quemada.
+- Frente activo como polilínea.
+
+**Georreferenciación**
+- Referencia de la fecha exacta con la Process API.
+- Zonas candidatas sin nombre del lugar (archivo FIRMS de esa fecha o barrido de la península).
+- Puntos de control manuales como respaldo explícito.
+
+**Común**
+- Harness de evaluación (IoU, precisión, recall por escena y matriz de falsos positivos por tipo).
+- Análisis de sensibilidad de los parámetros.
+- Procesado en pirámide para las escenas de 60 MP.
+
+**Más datos**
+- Más incendios de 2026 desde el Copernicus Browser o la Process API: antes, durante y después; también escenas sin fuego como negativos.
+- Ground truth desde EFFIS y EMS.
+- Datasets públicos (CaBuAr, Sen2Fire, S2-WCD) renderizados con los mismos scripts.
+
+---
+
+## 11. Estrategia TDD
+
+- **Ciclo**: test rojo → código mínimo → verde → refactor. Se testean resultados, no implementación, y solo el comportamiento crítico o complejo.
+- **Niveles**:
+  - **Sintéticos (ms)**: texturas y geometrías generadas con resultado conocido.
+  - **Escenas reales (`-m scenes`)**: regresión contra ground truth y valores verificados.
+  - **Hold-out**: La Mierla y las escenas nuevas reservadas nunca se usan para ajustar.
+  - **Contrato de API**: con `TestClient` y respuestas grabadas.
+  - **Frontend**: hooks y axe.
+- **Ground truth**:
+  - máscaras anotadas a mano o rasterizadas desde EFFIS/EMS;
+  - focos sacados de la capa Wildfire y revisados a mano;
+  - polígonos negativos (urbano, embalses, cultivos, humo).
+- **Servicios externos**: nunca se llaman en los tests; se reproducen respuestas grabadas.
+
+---
+
+## 12. Decisiones pendientes
+
+1. Catastro + OSM o solo OSM para edificios.
+2. Fuente del viento: AEMET OpenData (requiere clave) o ERA5.
+3. Bandas de distancia para la franja de afección: fijas o configurables.
+4. Qué ve el ciudadano: resumen + "¿Me afectó?" o también el mapa completo.

@@ -1,6 +1,6 @@
 # To do — Algoritmo de detección de incendios
 
-Tareas pendientes del algoritmo (`backend/pipeline/`), por prioridad. El detalle técnico de cada una está en `specs.md`.
+Tareas pendientes del algoritmo (`backend/pipeline/`), por prioridad. El detalle técnico de cada una está en `specs-algoritmo.md`.
 
 ## Hecho
 

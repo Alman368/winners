@@ -5,11 +5,13 @@ dist/
 __pycache__/
 *.py[cod]
 .venv/
+.pytest_cache/
 .env
 .env.*
 !.env.example
 logs/
 .DS_Store
+backend/data/
 
 .claude/*
 !.claude/skills/

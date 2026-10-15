@@ -1,0 +1,2192 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "stac_version": "1.0.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v1.0.0/schema.json"
+   ],
+   "id": "S2B_MSIL2A_20260818T110619_N0512_R137_T29SPB_20260818T132515.SAFE",
+   "type": "Feature",
+   "geometry": {
+    "type": "MultiPolygon",
+    "crs": {
+     "type": "name",
+     "properties": {
+      "name": "urn:ogc:def:crs:OGC::CRS84"
+     }
+    },
+    "coordinates": [
+     [
+      [
+       [
+        -7.672786760744099,
+        37.94009463472035
+       ],
+       [
+        -6.61306950120178,
+        37.92336471972786
+       ],
+       [
+        -6.644278572471318,
+        36.93451998151295
+       ],
+       [
+        -7.8756853355971375,
+        36.952567399861856
+       ],
+       [
+        -7.87121687738188,
+        37.24672000445081
+       ],
+       [
+        -7.672786760744099,
+        37.94009463472035
+       ]
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -7.8756853355971375,
+    36.93451998151295,
+    -6.61306950120178,
+    37.94009463472035
+   ],
+   "properties": {
+    "datetime": "2026-08-18T11:20:55.392Z",
+    "platform": "sentinel-2b",
+    "instruments": [
+     "msi"
+    ],
+    "constellation": "sentinel-2",
+    "gsd": 10,
+    "eo:cloud_cover": 0.0,
+    "proj:epsg": 32629,
+    "proj:bbox": [
+     600000.0,
+     4090200.0,
+     709800.0,
+     4200000.0
+    ],
+    "proj:geometry": {
+     "type": "MultiPolygon",
+     "crs": {
+      "type": "name",
+      "properties": {
+       "name": "urn:ogc:def:crs:EPSG::32629"
+      }
+     },
+     "coordinates": [
+      [
+       [
+        [
+         616623.0727844542,
+         4199999.0000149
+        ],
+        [
+         709799.0000682172,
+         4199999.000014102
+        ],
+        [
+         709799.0000610664,
+         4090201.000002287
+        ],
+        [
+         600101.0003113744,
+         4090201.0000030645
+        ],
+        [
+         600110.9967275411,
+         4122839.2987508117
+        ],
+        [
+         616623.0727844542,
+         4199999.0000149
+        ]
+       ]
+      ]
+     ]
+    }
+   },
+   "assets": {
+    "data": {
+     "href": "s3://eodata/Sentinel-2/MSI/L2A/2026/08/18/S2B_MSIL2A_20260818T110619_N0512_R137_T29SPB_20260818T132515.SAFE",
+     "title": "s3",
+     "type": "inode/directory"
+    }
+   },
+   "collection": "sentinel-2-l2a",
+   "links": [
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/",
+     "rel": "root",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20260818T110619_N0512_R137_T29SPB_20260818T132515.SAFE",
+     "rel": "self",
+     "type": "application/geo+json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "parent",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "collection",
+     "type": "application/json"
+    }
+   ]
+  },
+  {
+   "stac_version": "1.0.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v1.0.0/schema.json"
+   ],
+   "id": "S2B_MSIL2A_20260818T110619_N0512_R137_T29SQB_20260818T132515.SAFE",
+   "type": "Feature",
+   "geometry": {
+    "type": "MultiPolygon",
+    "crs": {
+     "type": "name",
+     "properties": {
+      "name": "urn:ogc:def:crs:OGC::CRS84"
+     }
+    },
+    "coordinates": [
+     [
+      [
+       [
+        -6.724915447039296,
+        37.925581320606206
+       ],
+       [
+        -5.477460856164884,
+        37.89483000163904
+       ],
+       [
+        -5.523456442697022,
+        36.90698113780987
+       ],
+       [
+        -6.754665224558252,
+        36.936659191762196
+       ],
+       [
+        -6.724915447039296,
+        37.925581320606206
+       ]
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -6.754665224558252,
+    36.90698113780987,
+    -5.477460856164884,
+    37.925581320606206
+   ],
+   "properties": {
+    "datetime": "2026-08-18T11:20:52.274Z",
+    "platform": "sentinel-2b",
+    "instruments": [
+     "msi"
+    ],
+    "constellation": "sentinel-2",
+    "gsd": 10,
+    "eo:cloud_cover": 0.0,
+    "proj:epsg": 32629,
+    "proj:bbox": [
+     699960.0,
+     4090200.0,
+     809760.0,
+     4200000.0
+    ],
+    "proj:geometry": {
+     "type": "MultiPolygon",
+     "crs": {
+      "type": "name",
+      "properties": {
+       "name": "urn:ogc:def:crs:EPSG::32629"
+      }
+     },
+     "coordinates": [
+      [
+       [
+        [
+         699961.000048802,
+         4199999.000014236
+        ],
+        [
+         809759.0010360363,
+         4199999.0000161
+        ],
+        [
+         809759.0009271116,
+         4090201.000003036
+        ],
+        [
+         699961.000043689,
+         4090201.0000024172
+        ],
+        [
+         699961.000048802,
+         4199999.000014236
+        ]
+       ]
+      ]
+     ]
+    }
+   },
+   "assets": {
+    "data": {
+     "href": "s3://eodata/Sentinel-2/MSI/L2A/2026/08/18/S2B_MSIL2A_20260818T110619_N0512_R137_T29SQB_20260818T132515.SAFE",
+     "title": "s3",
+     "type": "inode/directory"
+    }
+   },
+   "collection": "sentinel-2-l2a",
+   "links": [
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/",
+     "rel": "root",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20260818T110619_N0512_R137_T29SQB_20260818T132515.SAFE",
+     "rel": "self",
+     "type": "application/geo+json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "parent",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "collection",
+     "type": "application/json"
+    }
+   ]
+  },
+  {
+   "stac_version": "1.0.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v1.0.0/schema.json"
+   ],
+   "id": "S2A_MSIL2A_20260815T110711_N0512_R137_T29SPB_20260815T161211.SAFE",
+   "type": "Feature",
+   "geometry": {
+    "type": "MultiPolygon",
+    "crs": {
+     "type": "name",
+     "properties": {
+      "name": "urn:ogc:def:crs:OGC::CRS84"
+     }
+    },
+    "coordinates": [
+     [
+      [
+       [
+        -7.682799034548088,
+        37.94020716019381
+       ],
+       [
+        -6.61306950120178,
+        37.92336471972786
+       ],
+       [
+        -6.644278572471318,
+        36.93451998151295
+       ],
+       [
+        -7.876808322973587,
+        36.95257802780745
+       ],
+       [
+        -7.871972694122212,
+        37.27920081567004
+       ],
+       [
+        -7.682799034548088,
+        37.94020716019381
+       ]
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -7.876808322973587,
+    36.93451998151295,
+    -6.61306950120178,
+    37.94020716019381
+   ],
+   "properties": {
+    "datetime": "2026-08-15T11:21:14.268Z",
+    "platform": "sentinel-2a",
+    "instruments": [
+     "msi"
+    ],
+    "constellation": "sentinel-2",
+    "gsd": 10,
+    "eo:cloud_cover": 0.0,
+    "proj:epsg": 32629,
+    "proj:bbox": [
+     600000.0,
+     4090200.0,
+     709800.0,
+     4200000.0
+    ],
+    "proj:geometry": {
+     "type": "MultiPolygon",
+     "crs": {
+      "type": "name",
+      "properties": {
+       "name": "urn:ogc:def:crs:EPSG::32629"
+      }
+     },
+     "coordinates": [
+      [
+       [
+        [
+         615743.0730529602,
+         4199999.000014902
+        ],
+        [
+         709799.0000682172,
+         4199999.000014102
+        ],
+        [
+         709799.0000610664,
+         4090201.000002287
+        ],
+        [
+         600001.0000003565,
+         4090201.000003065
+        ],
+        [
+         600001.0000003694,
+         4126442.049966501
+        ],
+        [
+         615743.0730529602,
+         4199999.000014902
+        ]
+       ]
+      ]
+     ]
+    }
+   },
+   "assets": {
+    "data": {
+     "href": "s3://eodata/Sentinel-2/MSI/L2A/2026/08/15/S2A_MSIL2A_20260815T110711_N0512_R137_T29SPB_20260815T161211.SAFE",
+     "title": "s3",
+     "type": "inode/directory"
+    }
+   },
+   "collection": "sentinel-2-l2a",
+   "links": [
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/",
+     "rel": "root",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a/items/S2A_MSIL2A_20260815T110711_N0512_R137_T29SPB_20260815T161211.SAFE",
+     "rel": "self",
+     "type": "application/geo+json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "parent",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "collection",
+     "type": "application/json"
+    }
+   ]
+  },
+  {
+   "stac_version": "1.0.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v1.0.0/schema.json"
+   ],
+   "id": "S2A_MSIL2A_20260815T110711_N0512_R137_T29SQB_20260815T161211.SAFE",
+   "type": "Feature",
+   "geometry": {
+    "type": "MultiPolygon",
+    "crs": {
+     "type": "name",
+     "properties": {
+      "name": "urn:ogc:def:crs:OGC::CRS84"
+     }
+    },
+    "coordinates": [
+     [
+      [
+       [
+        -6.724915447039296,
+        37.925581320606206
+       ],
+       [
+        -5.477460856164884,
+        37.89483000163904
+       ],
+       [
+        -5.523456442697022,
+        36.90698113780987
+       ],
+       [
+        -6.754665224558252,
+        36.936659191762196
+       ],
+       [
+        -6.724915447039296,
+        37.925581320606206
+       ]
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -6.754665224558252,
+    36.90698113780987,
+    -5.477460856164884,
+    37.925581320606206
+   ],
+   "properties": {
+    "datetime": "2026-08-15T11:21:11.155Z",
+    "platform": "sentinel-2a",
+    "instruments": [
+     "msi"
+    ],
+    "constellation": "sentinel-2",
+    "gsd": 10,
+    "eo:cloud_cover": 1.35,
+    "proj:epsg": 32629,
+    "proj:bbox": [
+     699960.0,
+     4090200.0,
+     809760.0,
+     4200000.0
+    ],
+    "proj:geometry": {
+     "type": "MultiPolygon",
+     "crs": {
+      "type": "name",
+      "properties": {
+       "name": "urn:ogc:def:crs:EPSG::32629"
+      }
+     },
+     "coordinates": [
+      [
+       [
+        [
+         699961.000048802,
+         4199999.000014236
+        ],
+        [
+         809759.0010360363,
+         4199999.0000161
+        ],
+        [
+         809759.0009271116,
+         4090201.000003036
+        ],
+        [
+         699961.000043689,
+         4090201.0000024172
+        ],
+        [
+         699961.000048802,
+         4199999.000014236
+        ]
+       ]
+      ]
+     ]
+    }
+   },
+   "assets": {
+    "data": {
+     "href": "s3://eodata/Sentinel-2/MSI/L2A/2026/08/15/S2A_MSIL2A_20260815T110711_N0512_R137_T29SQB_20260815T161211.SAFE",
+     "title": "s3",
+     "type": "inode/directory"
+    }
+   },
+   "collection": "sentinel-2-l2a",
+   "links": [
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/",
+     "rel": "root",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a/items/S2A_MSIL2A_20260815T110711_N0512_R137_T29SQB_20260815T161211.SAFE",
+     "rel": "self",
+     "type": "application/geo+json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "parent",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "collection",
+     "type": "application/json"
+    }
+   ]
+  },
+  {
+   "stac_version": "1.0.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v1.0.0/schema.json"
+   ],
+   "id": "S2C_MSIL2A_20260813T110621_N0512_R137_T29SPB_20260813T144414.SAFE",
+   "type": "Feature",
+   "geometry": {
+    "type": "MultiPolygon",
+    "crs": {
+     "type": "name",
+     "properties": {
+      "name": "urn:ogc:def:crs:OGC::CRS84"
+     }
+    },
+    "coordinates": [
+     [
+      [
+       [
+        -7.681433819881672,
+        37.94019186706628
+       ],
+       [
+        -6.61306950120178,
+        37.92336471972786
+       ],
+       [
+        -6.644278572471318,
+        36.93451998151295
+       ],
+       [
+        -7.876808322973587,
+        36.95257802780745
+       ],
+       [
+        -7.872068304490805,
+        37.27279376664814
+       ],
+       [
+        -7.681433819881672,
+        37.94019186706628
+       ]
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -7.876808322973587,
+    36.93451998151295,
+    -6.61306950120178,
+    37.94019186706628
+   ],
+   "properties": {
+    "datetime": "2026-08-13T11:20:57.503Z",
+    "platform": "sentinel-2c",
+    "instruments": [
+     "msi"
+    ],
+    "constellation": "sentinel-2",
+    "gsd": 10,
+    "eo:cloud_cover": 0.0,
+    "proj:epsg": 32629,
+    "proj:bbox": [
+     600000.0,
+     4090200.0,
+     709800.0,
+     4200000.0
+    ],
+    "proj:geometry": {
+     "type": "MultiPolygon",
+     "crs": {
+      "type": "name",
+      "properties": {
+       "name": "urn:ogc:def:crs:EPSG::32629"
+      }
+     },
+     "coordinates": [
+      [
+       [
+        [
+         615863.0643433657,
+         4199999.000014902
+        ],
+        [
+         709799.0000682172,
+         4199999.000014102
+        ],
+        [
+         709799.0000610664,
+         4090201.000002287
+        ],
+        [
+         600001.0000003565,
+         4090201.000003065
+        ],
+        [
+         600001.0000003692,
+         4125731.123876299
+        ],
+        [
+         615863.0643433657,
+         4199999.000014902
+        ]
+       ]
+      ]
+     ]
+    }
+   },
+   "assets": {
+    "data": {
+     "href": "s3://eodata/Sentinel-2/MSI/L2A/2026/08/13/S2C_MSIL2A_20260813T110621_N0512_R137_T29SPB_20260813T144414.SAFE",
+     "title": "s3",
+     "type": "inode/directory"
+    }
+   },
+   "collection": "sentinel-2-l2a",
+   "links": [
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/",
+     "rel": "root",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a/items/S2C_MSIL2A_20260813T110621_N0512_R137_T29SPB_20260813T144414.SAFE",
+     "rel": "self",
+     "type": "application/geo+json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "parent",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "collection",
+     "type": "application/json"
+    }
+   ]
+  },
+  {
+   "stac_version": "1.0.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v1.0.0/schema.json"
+   ],
+   "id": "S2C_MSIL2A_20260813T110621_N0512_R137_T29SQB_20260813T144414.SAFE",
+   "type": "Feature",
+   "geometry": {
+    "type": "MultiPolygon",
+    "crs": {
+     "type": "name",
+     "properties": {
+      "name": "urn:ogc:def:crs:OGC::CRS84"
+     }
+    },
+    "coordinates": [
+     [
+      [
+       [
+        -6.724915447039296,
+        37.925581320606206
+       ],
+       [
+        -5.477460856164884,
+        37.89483000163904
+       ],
+       [
+        -5.523456442697022,
+        36.90698113780987
+       ],
+       [
+        -6.754665224558252,
+        36.936659191762196
+       ],
+       [
+        -6.724915447039296,
+        37.925581320606206
+       ]
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -6.754665224558252,
+    36.90698113780987,
+    -5.477460856164884,
+    37.925581320606206
+   ],
+   "properties": {
+    "datetime": "2026-08-13T11:20:54.383Z",
+    "platform": "sentinel-2c",
+    "instruments": [
+     "msi"
+    ],
+    "constellation": "sentinel-2",
+    "gsd": 10,
+    "eo:cloud_cover": 0.04,
+    "proj:epsg": 32629,
+    "proj:bbox": [
+     699960.0,
+     4090200.0,
+     809760.0,
+     4200000.0
+    ],
+    "proj:geometry": {
+     "type": "MultiPolygon",
+     "crs": {
+      "type": "name",
+      "properties": {
+       "name": "urn:ogc:def:crs:EPSG::32629"
+      }
+     },
+     "coordinates": [
+      [
+       [
+        [
+         699961.000048802,
+         4199999.000014236
+        ],
+        [
+         809759.0010360363,
+         4199999.0000161
+        ],
+        [
+         809759.0009271116,
+         4090201.000003036
+        ],
+        [
+         699961.000043689,
+         4090201.0000024172
+        ],
+        [
+         699961.000048802,
+         4199999.000014236
+        ]
+       ]
+      ]
+     ]
+    }
+   },
+   "assets": {
+    "data": {
+     "href": "s3://eodata/Sentinel-2/MSI/L2A/2026/08/13/S2C_MSIL2A_20260813T110621_N0512_R137_T29SQB_20260813T144414.SAFE",
+     "title": "s3",
+     "type": "inode/directory"
+    }
+   },
+   "collection": "sentinel-2-l2a",
+   "links": [
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/",
+     "rel": "root",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a/items/S2C_MSIL2A_20260813T110621_N0512_R137_T29SQB_20260813T144414.SAFE",
+     "rel": "self",
+     "type": "application/geo+json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "parent",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "collection",
+     "type": "application/json"
+    }
+   ]
+  },
+  {
+   "stac_version": "1.0.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v1.0.0/schema.json"
+   ],
+   "id": "S2B_MSIL2A_20260808T110619_N0512_R137_T29SPB_20260808T132444.SAFE",
+   "type": "Feature",
+   "geometry": {
+    "type": "MultiPolygon",
+    "crs": {
+     "type": "name",
+     "properties": {
+      "name": "urn:ogc:def:crs:OGC::CRS84"
+     }
+    },
+    "coordinates": [
+     [
+      [
+       [
+        -7.680637480786301,
+        37.94018293916262
+       ],
+       [
+        -6.61306950120178,
+        37.92336471972786
+       ],
+       [
+        -6.644278572471318,
+        36.93451998151295
+       ],
+       [
+        -7.876808322973587,
+        36.95257802780745
+       ],
+       [
+        -7.8721316149283345,
+        37.268550083084456
+       ],
+       [
+        -7.680637480786301,
+        37.94018293916262
+       ]
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -7.876808322973587,
+    36.93451998151295,
+    -6.61306950120178,
+    37.94018293916262
+   ],
+   "properties": {
+    "datetime": "2026-08-08T11:20:57.808Z",
+    "platform": "sentinel-2b",
+    "instruments": [
+     "msi"
+    ],
+    "constellation": "sentinel-2",
+    "gsd": 10,
+    "eo:cloud_cover": 0.03,
+    "proj:epsg": 32629,
+    "proj:bbox": [
+     600000.0,
+     4090200.0,
+     709800.0,
+     4200000.0
+    ],
+    "proj:geometry": {
+     "type": "MultiPolygon",
+     "crs": {
+      "type": "name",
+      "properties": {
+       "name": "urn:ogc:def:crs:EPSG::32629"
+      }
+     },
+     "coordinates": [
+      [
+       [
+        [
+         615933.0561294748,
+         4199999.000014901
+        ],
+        [
+         709799.0000682172,
+         4199999.000014102
+        ],
+        [
+         709799.0000610664,
+         4090201.000002287
+        ],
+        [
+         600001.0000003565,
+         4090201.000003065
+        ],
+        [
+         600001.000000369,
+         4125260.2452314077
+        ],
+        [
+         615933.0561294748,
+         4199999.000014901
+        ]
+       ]
+      ]
+     ]
+    }
+   },
+   "assets": {
+    "data": {
+     "href": "s3://eodata/Sentinel-2/MSI/L2A/2026/08/08/S2B_MSIL2A_20260808T110619_N0512_R137_T29SPB_20260808T132444.SAFE",
+     "title": "s3",
+     "type": "inode/directory"
+    }
+   },
+   "collection": "sentinel-2-l2a",
+   "links": [
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/",
+     "rel": "root",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20260808T110619_N0512_R137_T29SPB_20260808T132444.SAFE",
+     "rel": "self",
+     "type": "application/geo+json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "parent",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "collection",
+     "type": "application/json"
+    }
+   ]
+  },
+  {
+   "stac_version": "1.0.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v1.0.0/schema.json"
+   ],
+   "id": "S2B_MSIL2A_20260808T110619_N0512_R137_T29SQB_20260808T132444.SAFE",
+   "type": "Feature",
+   "geometry": {
+    "type": "MultiPolygon",
+    "crs": {
+     "type": "name",
+     "properties": {
+      "name": "urn:ogc:def:crs:OGC::CRS84"
+     }
+    },
+    "coordinates": [
+     [
+      [
+       [
+        -6.724915447039296,
+        37.925581320606206
+       ],
+       [
+        -5.477460856164884,
+        37.89483000163904
+       ],
+       [
+        -5.523456442697022,
+        36.90698113780987
+       ],
+       [
+        -6.754665224558252,
+        36.936659191762196
+       ],
+       [
+        -6.724915447039296,
+        37.925581320606206
+       ]
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -6.754665224558252,
+    36.90698113780987,
+    -5.477460856164884,
+    37.925581320606206
+   ],
+   "properties": {
+    "datetime": "2026-08-08T11:20:54.695Z",
+    "platform": "sentinel-2b",
+    "instruments": [
+     "msi"
+    ],
+    "constellation": "sentinel-2",
+    "gsd": 10,
+    "eo:cloud_cover": 0.08,
+    "proj:epsg": 32629,
+    "proj:bbox": [
+     699960.0,
+     4090200.0,
+     809760.0,
+     4200000.0
+    ],
+    "proj:geometry": {
+     "type": "MultiPolygon",
+     "crs": {
+      "type": "name",
+      "properties": {
+       "name": "urn:ogc:def:crs:EPSG::32629"
+      }
+     },
+     "coordinates": [
+      [
+       [
+        [
+         699961.000048802,
+         4199999.000014236
+        ],
+        [
+         809759.0010360363,
+         4199999.0000161
+        ],
+        [
+         809759.0009271116,
+         4090201.000003036
+        ],
+        [
+         699961.000043689,
+         4090201.0000024172
+        ],
+        [
+         699961.000048802,
+         4199999.000014236
+        ]
+       ]
+      ]
+     ]
+    }
+   },
+   "assets": {
+    "data": {
+     "href": "s3://eodata/Sentinel-2/MSI/L2A/2026/08/08/S2B_MSIL2A_20260808T110619_N0512_R137_T29SQB_20260808T132444.SAFE",
+     "title": "s3",
+     "type": "inode/directory"
+    }
+   },
+   "collection": "sentinel-2-l2a",
+   "links": [
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/",
+     "rel": "root",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20260808T110619_N0512_R137_T29SQB_20260808T132444.SAFE",
+     "rel": "self",
+     "type": "application/geo+json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "parent",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "collection",
+     "type": "application/json"
+    }
+   ]
+  },
+  {
+   "stac_version": "1.0.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v1.0.0/schema.json"
+   ],
+   "id": "S2A_MSIL2A_20260805T110651_N0512_R137_T29SPB_20260805T211533.SAFE",
+   "type": "Feature",
+   "geometry": {
+    "type": "MultiPolygon",
+    "crs": {
+     "type": "name",
+     "properties": {
+      "name": "urn:ogc:def:crs:OGC::CRS84"
+     }
+    },
+    "coordinates": [
+     [
+      [
+       [
+        -7.687122600539743,
+        37.940255488201544
+       ],
+       [
+        -6.61306950120178,
+        37.92336471972786
+       ],
+       [
+        -6.644278572471318,
+        36.93451998151295
+       ],
+       [
+        -7.876808322973587,
+        36.95257802780745
+       ],
+       [
+        -7.871746718031652,
+        37.294335860004615
+       ],
+       [
+        -7.687122600539743,
+        37.940255488201544
+       ]
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -7.876808322973587,
+    36.93451998151295,
+    -6.61306950120178,
+    37.940255488201544
+   ],
+   "properties": {
+    "datetime": "2026-08-05T11:21:15.986Z",
+    "platform": "sentinel-2a",
+    "instruments": [
+     "msi"
+    ],
+    "constellation": "sentinel-2",
+    "gsd": 10,
+    "eo:cloud_cover": 0.0,
+    "proj:epsg": 32629,
+    "proj:bbox": [
+     600000.0,
+     4090200.0,
+     709800.0,
+     4200000.0
+    ],
+    "proj:geometry": {
+     "type": "MultiPolygon",
+     "crs": {
+      "type": "name",
+      "properties": {
+       "name": "urn:ogc:def:crs:EPSG::32629"
+      }
+     },
+     "coordinates": [
+      [
+       [
+        [
+         615363.0672866419,
+         4199999.000014904
+        ],
+        [
+         709799.0000682172,
+         4199999.000014102
+        ],
+        [
+         709799.0000610664,
+         4090201.000002287
+        ],
+        [
+         600001.0000003565,
+         4090201.000003065
+        ],
+        [
+         600001.00000037,
+         4128121.4374781623
+        ],
+        [
+         615363.0672866419,
+         4199999.000014904
+        ]
+       ]
+      ]
+     ]
+    }
+   },
+   "assets": {
+    "data": {
+     "href": "s3://eodata/Sentinel-2/MSI/L2A/2026/08/05/S2A_MSIL2A_20260805T110651_N0512_R137_T29SPB_20260805T211533.SAFE",
+     "title": "s3",
+     "type": "inode/directory"
+    }
+   },
+   "collection": "sentinel-2-l2a",
+   "links": [
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/",
+     "rel": "root",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a/items/S2A_MSIL2A_20260805T110651_N0512_R137_T29SPB_20260805T211533.SAFE",
+     "rel": "self",
+     "type": "application/geo+json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "parent",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "collection",
+     "type": "application/json"
+    }
+   ]
+  },
+  {
+   "stac_version": "1.0.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v1.0.0/schema.json"
+   ],
+   "id": "S2A_MSIL2A_20260805T110651_N0512_R137_T29SQB_20260805T211533.SAFE",
+   "type": "Feature",
+   "geometry": {
+    "type": "MultiPolygon",
+    "crs": {
+     "type": "name",
+     "properties": {
+      "name": "urn:ogc:def:crs:OGC::CRS84"
+     }
+    },
+    "coordinates": [
+     [
+      [
+       [
+        -6.724915447039296,
+        37.925581320606206
+       ],
+       [
+        -5.477460856164884,
+        37.89483000163904
+       ],
+       [
+        -5.523456442697022,
+        36.90698113780987
+       ],
+       [
+        -6.754665224558252,
+        36.936659191762196
+       ],
+       [
+        -6.724915447039296,
+        37.925581320606206
+       ]
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -6.754665224558252,
+    36.90698113780987,
+    -5.477460856164884,
+    37.925581320606206
+   ],
+   "properties": {
+    "datetime": "2026-08-05T11:21:12.873Z",
+    "platform": "sentinel-2a",
+    "instruments": [
+     "msi"
+    ],
+    "constellation": "sentinel-2",
+    "gsd": 10,
+    "eo:cloud_cover": 0.0,
+    "proj:epsg": 32629,
+    "proj:bbox": [
+     699960.0,
+     4090200.0,
+     809760.0,
+     4200000.0
+    ],
+    "proj:geometry": {
+     "type": "MultiPolygon",
+     "crs": {
+      "type": "name",
+      "properties": {
+       "name": "urn:ogc:def:crs:EPSG::32629"
+      }
+     },
+     "coordinates": [
+      [
+       [
+        [
+         699961.000048802,
+         4199999.000014236
+        ],
+        [
+         809759.0010360363,
+         4199999.0000161
+        ],
+        [
+         809759.0009271116,
+         4090201.000003036
+        ],
+        [
+         699961.000043689,
+         4090201.0000024172
+        ],
+        [
+         699961.000048802,
+         4199999.000014236
+        ]
+       ]
+      ]
+     ]
+    }
+   },
+   "assets": {
+    "data": {
+     "href": "s3://eodata/Sentinel-2/MSI/L2A/2026/08/05/S2A_MSIL2A_20260805T110651_N0512_R137_T29SQB_20260805T211533.SAFE",
+     "title": "s3",
+     "type": "inode/directory"
+    }
+   },
+   "collection": "sentinel-2-l2a",
+   "links": [
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/",
+     "rel": "root",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a/items/S2A_MSIL2A_20260805T110651_N0512_R137_T29SQB_20260805T211533.SAFE",
+     "rel": "self",
+     "type": "application/geo+json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "parent",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "collection",
+     "type": "application/json"
+    }
+   ]
+  },
+  {
+   "stac_version": "1.0.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v1.0.0/schema.json"
+   ],
+   "id": "S2C_MSIL2A_20260803T110621_N0512_R137_T29SPB_20260803T145313.SAFE",
+   "type": "Feature",
+   "geometry": {
+    "type": "MultiPolygon",
+    "crs": {
+     "type": "name",
+     "properties": {
+      "name": "urn:ogc:def:crs:OGC::CRS84"
+     }
+    },
+    "coordinates": [
+     [
+      [
+       [
+        -7.688146631026768,
+        37.94026691134314
+       ],
+       [
+        -6.61306950120178,
+        37.92336471972786
+       ],
+       [
+        -6.644278572471318,
+        36.93451998151295
+       ],
+       [
+        -7.876808322973587,
+        36.95257802780745
+       ],
+       [
+        -7.871698307950782,
+        37.29757671242947
+       ],
+       [
+        -7.688146631026768,
+        37.94026691134314
+       ]
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -7.876808322973587,
+    36.93451998151295,
+    -6.61306950120178,
+    37.94026691134314
+   ],
+   "properties": {
+    "datetime": "2026-08-03T11:20:59.564Z",
+    "platform": "sentinel-2c",
+    "instruments": [
+     "msi"
+    ],
+    "constellation": "sentinel-2",
+    "gsd": 10,
+    "eo:cloud_cover": 11.37,
+    "proj:epsg": 32629,
+    "proj:bbox": [
+     600000.0,
+     4090200.0,
+     709800.0,
+     4200000.0
+    ],
+    "proj:geometry": {
+     "type": "MultiPolygon",
+     "crs": {
+      "type": "name",
+      "properties": {
+       "name": "urn:ogc:def:crs:EPSG::32629"
+      }
+     },
+     "coordinates": [
+      [
+       [
+        [
+         615273.0635916307,
+         4199999.000014904
+        ],
+        [
+         709799.0000682172,
+         4199999.000014102
+        ],
+        [
+         709799.0000610664,
+         4090201.000002287
+        ],
+        [
+         600001.0000003565,
+         4090201.000003065
+        ],
+        [
+         600001.0000003701,
+         4128481.0436804686
+        ],
+        [
+         615273.0635916307,
+         4199999.000014904
+        ]
+       ]
+      ]
+     ]
+    }
+   },
+   "assets": {
+    "data": {
+     "href": "s3://eodata/Sentinel-2/MSI/L2A/2026/08/03/S2C_MSIL2A_20260803T110621_N0512_R137_T29SPB_20260803T145313.SAFE",
+     "title": "s3",
+     "type": "inode/directory"
+    }
+   },
+   "collection": "sentinel-2-l2a",
+   "links": [
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/",
+     "rel": "root",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a/items/S2C_MSIL2A_20260803T110621_N0512_R137_T29SPB_20260803T145313.SAFE",
+     "rel": "self",
+     "type": "application/geo+json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "parent",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "collection",
+     "type": "application/json"
+    }
+   ]
+  },
+  {
+   "stac_version": "1.0.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v1.0.0/schema.json"
+   ],
+   "id": "S2C_MSIL2A_20260803T110621_N0512_R137_T29SQB_20260803T145313.SAFE",
+   "type": "Feature",
+   "geometry": {
+    "type": "MultiPolygon",
+    "crs": {
+     "type": "name",
+     "properties": {
+      "name": "urn:ogc:def:crs:OGC::CRS84"
+     }
+    },
+    "coordinates": [
+     [
+      [
+       [
+        -6.724915447039296,
+        37.925581320606206
+       ],
+       [
+        -5.477460856164884,
+        37.89483000163904
+       ],
+       [
+        -5.523456442697022,
+        36.90698113780987
+       ],
+       [
+        -6.754665224558252,
+        36.936659191762196
+       ],
+       [
+        -6.724915447039296,
+        37.925581320606206
+       ]
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -6.754665224558252,
+    36.90698113780987,
+    -5.477460856164884,
+    37.925581320606206
+   ],
+   "properties": {
+    "datetime": "2026-08-03T11:20:56.449Z",
+    "platform": "sentinel-2c",
+    "instruments": [
+     "msi"
+    ],
+    "constellation": "sentinel-2",
+    "gsd": 10,
+    "eo:cloud_cover": 60.07,
+    "proj:epsg": 32629,
+    "proj:bbox": [
+     699960.0,
+     4090200.0,
+     809760.0,
+     4200000.0
+    ],
+    "proj:geometry": {
+     "type": "MultiPolygon",
+     "crs": {
+      "type": "name",
+      "properties": {
+       "name": "urn:ogc:def:crs:EPSG::32629"
+      }
+     },
+     "coordinates": [
+      [
+       [
+        [
+         699961.000048802,
+         4199999.000014236
+        ],
+        [
+         809759.0010360363,
+         4199999.0000161
+        ],
+        [
+         809759.0009271116,
+         4090201.000003036
+        ],
+        [
+         699961.000043689,
+         4090201.0000024172
+        ],
+        [
+         699961.000048802,
+         4199999.000014236
+        ]
+       ]
+      ]
+     ]
+    }
+   },
+   "assets": {
+    "data": {
+     "href": "s3://eodata/Sentinel-2/MSI/L2A/2026/08/03/S2C_MSIL2A_20260803T110621_N0512_R137_T29SQB_20260803T145313.SAFE",
+     "title": "s3",
+     "type": "inode/directory"
+    }
+   },
+   "collection": "sentinel-2-l2a",
+   "links": [
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/",
+     "rel": "root",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a/items/S2C_MSIL2A_20260803T110621_N0512_R137_T29SQB_20260803T145313.SAFE",
+     "rel": "self",
+     "type": "application/geo+json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "parent",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "collection",
+     "type": "application/json"
+    }
+   ]
+  },
+  {
+   "stac_version": "1.0.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v1.0.0/schema.json"
+   ],
+   "id": "S2B_MSIL2A_20260729T110619_N0512_R137_T29SPB_20260729T134723.SAFE",
+   "type": "Feature",
+   "geometry": {
+    "type": "MultiPolygon",
+    "crs": {
+     "type": "name",
+     "properties": {
+      "name": "urn:ogc:def:crs:OGC::CRS84"
+     }
+    },
+    "coordinates": [
+     [
+      [
+       [
+        -7.684050575765201,
+        37.94022116603015
+       ],
+       [
+        -6.61306950120178,
+        37.92336471972786
+       ],
+       [
+        -6.644278572471318,
+        36.93451998151295
+       ],
+       [
+        -7.876808322973587,
+        36.95257802780745
+       ],
+       [
+        -7.871904090455944,
+        37.283796836254766
+       ],
+       [
+        -7.684050575765201,
+        37.94022116603015
+       ]
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -7.876808322973587,
+    36.93451998151295,
+    -6.61306950120178,
+    37.94022116603015
+   ],
+   "properties": {
+    "datetime": "2026-07-29T11:20:59.186Z",
+    "platform": "sentinel-2b",
+    "instruments": [
+     "msi"
+    ],
+    "constellation": "sentinel-2",
+    "gsd": 10,
+    "eo:cloud_cover": 30.86,
+    "proj:epsg": 32629,
+    "proj:bbox": [
+     600000.0,
+     4090200.0,
+     709800.0,
+     4200000.0
+    ],
+    "proj:geometry": {
+     "type": "MultiPolygon",
+     "crs": {
+      "type": "name",
+      "properties": {
+       "name": "urn:ogc:def:crs:EPSG::32629"
+      }
+     },
+     "coordinates": [
+      [
+       [
+        [
+         615633.0728160284,
+         4199999.000014905
+        ],
+        [
+         709799.0000682172,
+         4199999.000014102
+        ],
+        [
+         709799.0000610664,
+         4090201.000002287
+        ],
+        [
+         600001.0000003565,
+         4090201.000003065
+        ],
+        [
+         600001.0000003697,
+         4126952.0248503718
+        ],
+        [
+         615633.0728160284,
+         4199999.000014905
+        ]
+       ]
+      ]
+     ]
+    }
+   },
+   "assets": {
+    "data": {
+     "href": "s3://eodata/Sentinel-2/MSI/L2A/2026/07/29/S2B_MSIL2A_20260729T110619_N0512_R137_T29SPB_20260729T134723.SAFE",
+     "title": "s3",
+     "type": "inode/directory"
+    }
+   },
+   "collection": "sentinel-2-l2a",
+   "links": [
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/",
+     "rel": "root",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20260729T110619_N0512_R137_T29SPB_20260729T134723.SAFE",
+     "rel": "self",
+     "type": "application/geo+json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "parent",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "collection",
+     "type": "application/json"
+    }
+   ]
+  },
+  {
+   "stac_version": "1.0.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v1.0.0/schema.json"
+   ],
+   "id": "S2B_MSIL2A_20260729T110619_N0512_R137_T29SQB_20260729T134723.SAFE",
+   "type": "Feature",
+   "geometry": {
+    "type": "MultiPolygon",
+    "crs": {
+     "type": "name",
+     "properties": {
+      "name": "urn:ogc:def:crs:OGC::CRS84"
+     }
+    },
+    "coordinates": [
+     [
+      [
+       [
+        -6.724915447039296,
+        37.925581320606206
+       ],
+       [
+        -5.477460856164884,
+        37.89483000163904
+       ],
+       [
+        -5.523456442697022,
+        36.90698113780987
+       ],
+       [
+        -6.754665224558252,
+        36.936659191762196
+       ],
+       [
+        -6.724915447039296,
+        37.925581320606206
+       ]
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -6.754665224558252,
+    36.90698113780987,
+    -5.477460856164884,
+    37.925581320606206
+   ],
+   "properties": {
+    "datetime": "2026-07-29T11:20:56.078Z",
+    "platform": "sentinel-2b",
+    "instruments": [
+     "msi"
+    ],
+    "constellation": "sentinel-2",
+    "gsd": 10,
+    "eo:cloud_cover": 0.09,
+    "proj:epsg": 32629,
+    "proj:bbox": [
+     699960.0,
+     4090200.0,
+     809760.0,
+     4200000.0
+    ],
+    "proj:geometry": {
+     "type": "MultiPolygon",
+     "crs": {
+      "type": "name",
+      "properties": {
+       "name": "urn:ogc:def:crs:EPSG::32629"
+      }
+     },
+     "coordinates": [
+      [
+       [
+        [
+         699961.000048802,
+         4199999.000014236
+        ],
+        [
+         809759.0010360363,
+         4199999.0000161
+        ],
+        [
+         809759.0009271116,
+         4090201.000003036
+        ],
+        [
+         699961.000043689,
+         4090201.0000024172
+        ],
+        [
+         699961.000048802,
+         4199999.000014236
+        ]
+       ]
+      ]
+     ]
+    }
+   },
+   "assets": {
+    "data": {
+     "href": "s3://eodata/Sentinel-2/MSI/L2A/2026/07/29/S2B_MSIL2A_20260729T110619_N0512_R137_T29SQB_20260729T134723.SAFE",
+     "title": "s3",
+     "type": "inode/directory"
+    }
+   },
+   "collection": "sentinel-2-l2a",
+   "links": [
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/",
+     "rel": "root",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20260729T110619_N0512_R137_T29SQB_20260729T134723.SAFE",
+     "rel": "self",
+     "type": "application/geo+json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "parent",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "collection",
+     "type": "application/json"
+    }
+   ]
+  },
+  {
+   "stac_version": "1.0.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v1.0.0/schema.json"
+   ],
+   "id": "S2A_MSIL2A_20260726T110711_N0512_R137_T29SPB_20260726T210116.SAFE",
+   "type": "Feature",
+   "geometry": {
+    "type": "MultiPolygon",
+    "crs": {
+     "type": "name",
+     "properties": {
+      "name": "urn:ogc:def:crs:OGC::CRS84"
+     }
+    },
+    "coordinates": [
+     [
+      [
+       [
+        -7.687122545657185,
+        37.940255487589084
+       ],
+       [
+        -6.61306950120178,
+        37.92336471972786
+       ],
+       [
+        -6.644278572471318,
+        36.93451998151295
+       ],
+       [
+        -7.876808322973587,
+        36.95257802780745
+       ],
+       [
+        -7.871735880130517,
+        37.29506145738035
+       ],
+       [
+        -7.687122545657185,
+        37.940255487589084
+       ]
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -7.876808322973587,
+    36.93451998151295,
+    -6.61306950120178,
+    37.940255487589084
+   ],
+   "properties": {
+    "datetime": "2026-07-26T11:21:16.492Z",
+    "platform": "sentinel-2a",
+    "instruments": [
+     "msi"
+    ],
+    "constellation": "sentinel-2",
+    "gsd": 10,
+    "eo:cloud_cover": 0.0,
+    "proj:epsg": 32629,
+    "proj:bbox": [
+     600000.0,
+     4090200.0,
+     709800.0,
+     4200000.0
+    ],
+    "proj:geometry": {
+     "type": "MultiPolygon",
+     "crs": {
+      "type": "name",
+      "properties": {
+       "name": "urn:ogc:def:crs:EPSG::32629"
+      }
+     },
+     "coordinates": [
+      [
+       [
+        [
+         615363.07211036,
+         4199999.000014904
+        ],
+        [
+         709799.0000682172,
+         4199999.000014102
+        ],
+        [
+         709799.0000610664,
+         4090201.000002287
+        ],
+        [
+         600001.0000003565,
+         4090201.000003065
+        ],
+        [
+         600001.0000003701,
+         4128201.9500178355
+        ],
+        [
+         615363.07211036,
+         4199999.000014904
+        ]
+       ]
+      ]
+     ]
+    }
+   },
+   "assets": {
+    "data": {
+     "href": "s3://eodata/Sentinel-2/MSI/L2A/2026/07/26/S2A_MSIL2A_20260726T110711_N0512_R137_T29SPB_20260726T210116.SAFE",
+     "title": "s3",
+     "type": "inode/directory"
+    }
+   },
+   "collection": "sentinel-2-l2a",
+   "links": [
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/",
+     "rel": "root",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a/items/S2A_MSIL2A_20260726T110711_N0512_R137_T29SPB_20260726T210116.SAFE",
+     "rel": "self",
+     "type": "application/geo+json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "parent",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "collection",
+     "type": "application/json"
+    }
+   ]
+  },
+  {
+   "stac_version": "1.0.0",
+   "stac_extensions": [
+    "https://stac-extensions.github.io/eo/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/projection/v1.0.0/schema.json"
+   ],
+   "id": "S2A_MSIL2A_20260726T110711_N0512_R137_T29SQB_20260726T210116.SAFE",
+   "type": "Feature",
+   "geometry": {
+    "type": "MultiPolygon",
+    "crs": {
+     "type": "name",
+     "properties": {
+      "name": "urn:ogc:def:crs:OGC::CRS84"
+     }
+    },
+    "coordinates": [
+     [
+      [
+       [
+        -6.724915447039296,
+        37.925581320606206
+       ],
+       [
+        -5.477460856164884,
+        37.89483000163904
+       ],
+       [
+        -5.523456442697022,
+        36.90698113780987
+       ],
+       [
+        -6.754665224558252,
+        36.936659191762196
+       ],
+       [
+        -6.724915447039296,
+        37.925581320606206
+       ]
+      ]
+     ]
+    ]
+   },
+   "bbox": [
+    -6.754665224558252,
+    36.90698113780987,
+    -5.477460856164884,
+    37.925581320606206
+   ],
+   "properties": {
+    "datetime": "2026-07-26T11:21:13.381Z",
+    "platform": "sentinel-2a",
+    "instruments": [
+     "msi"
+    ],
+    "constellation": "sentinel-2",
+    "gsd": 10,
+    "eo:cloud_cover": 0.0,
+    "proj:epsg": 32629,
+    "proj:bbox": [
+     699960.0,
+     4090200.0,
+     809760.0,
+     4200000.0
+    ],
+    "proj:geometry": {
+     "type": "MultiPolygon",
+     "crs": {
+      "type": "name",
+      "properties": {
+       "name": "urn:ogc:def:crs:EPSG::32629"
+      }
+     },
+     "coordinates": [
+      [
+       [
+        [
+         699961.000048802,
+         4199999.000014236
+        ],
+        [
+         809759.0010360363,
+         4199999.0000161
+        ],
+        [
+         809759.0009271116,
+         4090201.000003036
+        ],
+        [
+         699961.000043689,
+         4090201.0000024172
+        ],
+        [
+         699961.000048802,
+         4199999.000014236
+        ]
+       ]
+      ]
+     ]
+    }
+   },
+   "assets": {
+    "data": {
+     "href": "s3://eodata/Sentinel-2/MSI/L2A/2026/07/26/S2A_MSIL2A_20260726T110711_N0512_R137_T29SQB_20260726T210116.SAFE",
+     "title": "s3",
+     "type": "inode/directory"
+    }
+   },
+   "collection": "sentinel-2-l2a",
+   "links": [
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/",
+     "rel": "root",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a/items/S2A_MSIL2A_20260726T110711_N0512_R137_T29SQB_20260726T210116.SAFE",
+     "rel": "self",
+     "type": "application/geo+json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "parent",
+     "type": "application/json"
+    },
+    {
+     "href": "https://sh.dataspace.copernicus.eu/catalog/v1/collections/sentinel-2-l2a",
+     "rel": "collection",
+     "type": "application/json"
+    }
+   ]
+  }
+ ],
+ "links": [
+  {
+   "href": "https://sh.dataspace.copernicus.eu/catalog/v1/search",
+   "rel": "self",
+   "type": "application/geo+json"
+  }
+ ],
+ "context": {
+  "limit": 50,
+  "returned": 16
+ }
+}

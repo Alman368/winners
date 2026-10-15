@@ -3,11 +3,14 @@ name = "winners-backend"
 version = "0.1.0"
 requires-python = ">=3.13,<3.14"
 dependencies = [
+    "affine>=3.0,<4",
     "fastapi>=0.143,<1",
     "httpx>=0.28,<1",
     "numpy>=2.3,<3",
+    "opencv-python-headless>=4.10,<5",
     "pillow>=11.3,<13",
     "pyproj>=3.8,<4",
+    "python-dotenv>=1.2,<2",
     "python-multipart>=0.0.20,<1",
     "rasterio>=1.4,<2",
     "scipy>=1.16,<2",
@@ -15,5 +18,16 @@ dependencies = [
     "uvicorn[standard]>=0.54,<1",
 ]
 
+[dependency-groups]
+dev = [
+    "httpx2>=2.13,<3",
+    "pytest>=8.3,<10",
+]
+
 [tool.uv]
 package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["scenes: regression tests against the challenge images"]
