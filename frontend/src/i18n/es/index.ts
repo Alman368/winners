@@ -69,7 +69,7 @@ export const es = {
   legend: {
     title: 'Leyenda',
     severityTitle: 'Severidad',
-    severityDescription: 'dNBR respecto a antes del incendio, clases USGS',
+    severityDescription: 'Daño estimado en la vegetación al comparar imágenes anteriores y posteriores al incendio.',
     hectares: (value: string) => `${value} ha`,
     front: (value: string) => `${value} km de frente`,
   },
