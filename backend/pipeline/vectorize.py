@@ -8,6 +8,7 @@ from shapely.affinity import affine_transform
 from shapely.geometry import MultiPolygon, Polygon, shape
 from shapely.ops import unary_union
 
+from pipeline.burned_area import closing, disk, opening
 from pipeline.config import CONFIG
 
 GEOD: Geod = Geod(ellps="WGS84")
@@ -38,16 +39,16 @@ def mask_to_multipolygon(
 ) -> MultiPolygon:
     """Mask to lon/lat polygons with their holes, using the pixel-to-lon/lat `transform` of the mask.
 
-    In pixel space (pixels are square in metres): polygons smaller than `min_pixels` are dropped, a rounded opening
-    and closing of `rounding_px` removes one-pixel spikes and steps, Douglas-Peucker simplifies and Chaikin rounds
-    the corners. Then they are projected to lon/lat.
+    A round closing and opening of `rounding_px` on the mask removes one-pixel spikes and steps. Then, in pixel space
+    (pixels are square in metres), polygons smaller than `min_pixels` are dropped, Douglas-Peucker simplifies and
+    Chaikin rounds the corners, and they are projected to lon/lat.
     """
     tolerance_px = CONFIG.simplify_tolerance_m / CONFIG.resolution_m
+    if rounding_px > 0:
+        mask = opening(closing(mask, disk(round(rounding_px))), disk(round(rounding_px)))
     merged = unary_union(
         [shape(geometry) for geometry, value in shapes(mask.astype(np.uint8), mask=mask, connectivity=8) if value == 1]
     )
-    if rounding_px > 0:
-        merged = merged.buffer(rounding_px).buffer(-2 * rounding_px).buffer(rounding_px)
     polygons = [
         _smooth(part)
         for part in get_parts(make_valid(merged.simplify(tolerance_px)))

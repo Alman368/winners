@@ -87,7 +87,7 @@ class Config:
 
     outline_smoothing_m: float = 20.0
     """Radius of the rounded opening and closing applied to burned, severity and smoke outlines. Removes the
-    one-pixel spikes and stair steps of the 20 m grid (Niebla: perimeter 47.7 km to 40.5 km, area +0.6 %)."""
+    one-pixel spikes and stair steps of the 20 m grid (Niebla: perimeter 47.7 km to 43.2 km, area +0.1 %)."""
 
     outline_chaikin_iterations: int = 2
     """Chaikin corner-cutting passes that round the simplified outlines, so they follow the land instead of the grid."""
