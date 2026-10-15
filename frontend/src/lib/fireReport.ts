@@ -1,8 +1,8 @@
-import type { FeatureCollection, Geometry, Position } from 'geojson'
+import type { FeatureCollection, Geometry } from 'geojson'
 
 import { t } from '@/i18n'
 import { palette } from '@/lib/palette'
-import type { AreaGeometry, FireReport, LngLat, MapLayerId, SeverityClass } from '@/types/fireReport'
+import type { FireReport, MapLayerId, SeverityClass } from '@/types/fireReport'
 
 export type Kpi = {
   id: string
@@ -10,18 +10,6 @@ export type Kpi = {
   value: string
   unit: string
   description: string
-}
-
-export type MapTarget = { kind: 'point'; center: LngLat } | { kind: 'bounds'; bounds: [LngLat, LngLat] }
-
-export type AffectedRow = {
-  id: string
-  name: string
-  type: string
-  situation: string
-  detail: string
-  official: 'confirmed' | 'not_confirmed' | null
-  target: MapTarget | null
 }
 
 export type LegendSymbol = 'fill' | 'line' | 'dashed' | 'fire' | 'marker' | 'ramp'
@@ -37,7 +25,6 @@ export type LegendItem = {
 
 const SEVERE_CLASSES: SeverityClass[] = ['moderada_alta', 'alta']
 const MIN_NEARBY_POPULATION = 500
-const EDGE_KM = 0.1
 
 export const severityColors: Record<Exclude<SeverityClass, 'sin_quemar'>, string> = {
   baja: palette.amber9,
@@ -99,17 +86,6 @@ function relevantTowns(report: FireReport) {
         Number(b.inside) - Number(a.inside) ||
         a.distanceKm - b.distanceKm,
     )
-}
-
-function geometryBounds(geometry: AreaGeometry): [LngLat, LngLat] {
-  const rings: Position[][] = geometry.type === 'Polygon' ? geometry.coordinates : geometry.coordinates.flat()
-  const points = rings.flat()
-  const lngs = points.map(([lng]) => lng)
-  const lats = points.map(([, lat]) => lat)
-  return [
-    [Math.min(...lngs), Math.min(...lats)],
-    [Math.max(...lngs), Math.max(...lats)],
-  ]
 }
 
 export function buildKpis(report: FireReport): Kpi[] {
@@ -183,41 +159,6 @@ export function buildLegend(report: FireReport, visibleLayers: Record<MapLayerId
       share: null,
     }))
   return { severity, layers }
-}
-
-export function buildAffectedRows(report: FireReport): AffectedRow[] {
-  const towns = relevantTowns(report).map<AffectedRow>((town) => ({
-    id: `town-${town.name}`,
-    name: town.name,
-    type: t.affected.types.town,
-    situation: town.inside
-      ? t.affected.inside
-      : town.distanceKm < EDGE_KM
-        ? t.affected.edge
-        : t.affected.near(formatNumber(town.distanceKm, 1)),
-    detail: town.population === null ? t.affected.noPopulation : t.affected.population(formatNumber(town.population)),
-    official: town.inside ? (town.confirmedOfficial ? 'confirmed' : 'not_confirmed') : null,
-    target: { kind: 'point', center: town.coordinates },
-  }))
-  const roads = report.affected.roads.map<AffectedRow>((road) => ({
-    id: `road-${road.name}`,
-    name: road.name,
-    type: t.affected.types.road,
-    situation: t.affected.inside,
-    detail: t.affected.kmInside(formatNumber(road.kmInside, 1)),
-    official: null,
-    target: null,
-  }))
-  const reservoirs = report.affected.reservoirs.map<AffectedRow>((reservoir, index) => ({
-    id: `reservoir-${index}`,
-    name: t.affected.reservoirName(formatNumber(reservoir.areaHa)),
-    type: t.affected.types.reservoir,
-    situation: reservoir.touches ? t.affected.edge : t.affected.near(formatNumber(reservoir.distanceKm, 1)),
-    detail: t.affected.notApplicable,
-    official: null,
-    target: { kind: 'bounds', bounds: geometryBounds(reservoir.geometry) },
-  }))
-  return [...towns, ...roads, ...reservoirs]
 }
 
 function collection(geometries: Geometry[]): FeatureCollection {

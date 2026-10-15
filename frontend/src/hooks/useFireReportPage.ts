@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query'
-import type { Map as MapLibreMap } from 'maplibre-gl'
 import { useMemo, useState } from 'react'
 
 import { fetchSceneAnalysis } from '@/api/analysis'
@@ -8,11 +7,9 @@ import { fetchFireReport } from '@/api/fireReports'
 import { applyAnalysis } from '@/lib/analysis'
 import { demoFires } from '@/lib/demoFires'
 import {
-  buildAffectedRows,
   buildKpis,
   buildLegend,
   buildMapData,
-  type MapTarget,
 } from '@/lib/fireReport'
 import { buildSceneImage } from '@/lib/scenes'
 import type { Composite, MapLayerId } from '@/types/fireReport'
@@ -28,14 +25,11 @@ const initialLayers: Record<MapLayerId, boolean> = {
   official: false,
 }
 
-const FOCUS_ZOOM = 13
-const FOCUS_PADDING = 80
 
 export function useFireReportPage() {
   const [fireId, setFireId] = useState(demoFires[0].id)
   const [composite, setComposite] = useState<Composite>('swir')
   const [visibleLayers, setVisibleLayers] = useState(initialLayers)
-  const [map, setMap] = useState<MapLibreMap | null>(null)
 
   const reportQuery = useQuery({
     queryKey: ['fire-report', fireId],
@@ -67,7 +61,6 @@ export function useFireReportPage() {
     return {
       report,
       kpis: buildKpis(report),
-      affectedRows: buildAffectedRows(report),
       mapData: buildMapData(report),
     }
   }, [report])
@@ -80,17 +73,6 @@ export function useFireReportPage() {
   const selectFire = (id: string) => {
     setFireId(id)
     setComposite('swir')
-  }
-
-  const focusTarget = (target: MapTarget) => {
-    if (!map) {
-      return
-    }
-    if (target.kind === 'point') {
-      map.flyTo({ center: target.center, zoom: FOCUS_ZOOM })
-    } else {
-      map.fitBounds(target.bounds, { padding: FOCUS_PADDING, maxZoom: FOCUS_ZOOM })
-    }
   }
 
   const setLayerVisible = (layer: MapLayerId, visible: boolean) => {
@@ -107,8 +89,6 @@ export function useFireReportPage() {
     visibleLayers,
     setLayerVisible,
     view,
-    setMap,
-    focusTarget,
     basemap: basemapQuery.data,
     sceneImages,
     legend,
