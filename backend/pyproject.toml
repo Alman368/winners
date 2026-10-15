@@ -1,0 +1,23 @@
+[project]
+name = "wildfire-backend"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "httpx>=0.28",
+    "numpy>=1.26",
+    "opencv-python-headless>=4.10",
+    "python-multipart>=0.0.20",
+    "uvicorn>=0.30",
+]
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.13.1",
+    "pytest>=8.3",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["scenes: regression tests against the challenge images"]
