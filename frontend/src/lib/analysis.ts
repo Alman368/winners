@@ -1,4 +1,5 @@
 import { sceneImagePath } from '@/api/scenes'
+import { areaContains, distanceToAreaKm } from '@/lib/geometry'
 import { bboxCorners } from '@/lib/scenes'
 import type {
   AnalysisInProgress,
@@ -51,10 +52,18 @@ function analysisSections(analysis: FireAnalysis): Pick<FireReport, 'burned' | '
   }
 }
 
+/** Towns are placed against the analysed perimeter, not the one the static report was built with. */
 export function applyAnalysis(report: FireReport, analysis: FireAnalysis): FireReport {
+  const sections = analysisSections(analysis)
+  const { perimeter } = sections.burned
+  const towns = report.affected.towns.map((town) => {
+    const inside = areaContains(town.coordinates, perimeter)
+    return { ...town, inside, distanceKm: inside ? 0 : distanceToAreaKm(town.coordinates, perimeter) }
+  })
   return {
     ...report,
-    ...analysisSections(analysis),
+    ...sections,
+    affected: { ...report.affected, towns },
     scene: { ...report.scene, bbox: analysis.scene.bbox },
   }
 }

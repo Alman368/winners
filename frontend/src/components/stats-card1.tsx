@@ -6,7 +6,7 @@ interface StatsCard1Props {
   title: string;
   value: string;
   unit: string;
-  description: string;
+  description: string | null;
   className?: string;
 }
 
@@ -23,7 +23,7 @@ const StatsCard1 = ({ title, value, unit, description, className }: StatsCard1Pr
           <span className="text-2xl font-bold tabular-nums">{value}</span>
           <span className="text-sm text-muted-foreground">{unit}</span>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+        {description && <p className="mt-1 text-xs text-muted-foreground">{description}</p>}
       </CardContent>
     </Card>
   );

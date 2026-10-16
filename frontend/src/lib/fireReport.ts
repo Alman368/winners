@@ -4,14 +4,14 @@ import { t } from '@/i18n'
 import type { ColorMode } from '@/lib/accessibility'
 import { palette } from '@/lib/palette'
 import type { AffectedRoad, Weather } from '@/types/analysis'
-import type { FireReport, LngLat, MapLayerId, SeverityClass } from '@/types/fireReport'
+import type { AreaGeometry, FireReport, LngLat, MapLayerId, SeverityClass } from '@/types/fireReport'
 
 export type Kpi = {
   id: string
   title: string
   value: string
   unit: string
-  description: string
+  description: string | null
 }
 
 export type FireZone = {
@@ -47,6 +47,9 @@ export type WeatherSummary = {
 
 const SEVERE_CLASSES: SeverityClass[] = ['moderada_alta', 'alta']
 const LISTED_ROADS = 3
+/** Farthest a town outside the perimeter can be to count as nearby. */
+export const NEARBY_KM = 2
+const ROAD_RANK = ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified']
 const COMPASS_SECTOR_DEG = 360 / t.weather.directions.length
 
 export type MapColors = {
@@ -123,17 +126,38 @@ function roadsKm(roads: AffectedRoad[]): number {
   return roads.reduce((sum, road) => sum + road.km_inside, 0)
 }
 
-function roadsDescription(roads: AffectedRoad[]): string {
+function roadRank(road: AffectedRoad): number {
+  return ROAD_RANK.indexOf(road.road_type.replace(/_link$/, ''))
+}
+
+/** Named roads only, most important first: unnamed stretches say nothing in a one-line summary. */
+function roadsDescription(roads: AffectedRoad[]): string | null {
   if (roads.length === 0) {
     return t.kpis.roadsNone
   }
-  const names = roads.slice(0, LISTED_ROADS).map((road) => road.ref ?? road.name ?? t.kpis.unnamedRoad)
-  const more = roads.length - names.length
-  return more > 0 ? t.kpis.roadsMore(names.join(', '), more) : names.join(', ')
+  const named = roads
+    .filter((road) => road.ref ?? road.name)
+    .sort((a, b) => roadRank(a) - roadRank(b) || b.km_inside - a.km_inside)
+    .map((road) => (road.ref ?? road.name)!)
+  if (named.length === 0) {
+    return null
+  }
+  const names = named.slice(0, LISTED_ROADS).join(', ')
+  const more = named.length - LISTED_ROADS
+  return more > 0 ? t.kpis.roadsMore(names, more) : names
+}
+
+function fireDescription(report: FireReport): string | null {
+  const { totalLengthKm } = report.activeFire
+  if (totalLengthKm === 0) {
+    return null
+  }
+  const pct = (totalLengthKm / report.burned.perimeterKm) * 100
+  return t.kpis.fireDescription(formatNumber(pct, pct < 10 ? 1 : 0), formatNumber(report.burned.perimeterKm))
 }
 
 function townsWhere(report: FireReport, inside: boolean) {
-  return report.affected.towns.filter((town) => town.inside === inside)
+  return report.affected.towns.filter((town) => town.inside === inside && town.distanceKm <= NEARBY_KM)
 }
 
 export function buildKpis(report: FireReport): Kpi[] {
@@ -143,7 +167,7 @@ export function buildKpis(report: FireReport): Kpi[] {
       title: t.kpis.burned,
       value: formatNumber(report.burned.areaHa),
       unit: t.kpis.ha,
-      description: t.kpis.burnedDescription(formatNumber(report.burned.perimeterKm)),
+      description: null,
     },
     {
       id: 'severe',
@@ -157,7 +181,7 @@ export function buildKpis(report: FireReport): Kpi[] {
       title: t.kpis.fire,
       value: formatNumber(report.activeFire.totalLengthKm, 1),
       unit: t.kpis.km,
-      description: t.kpis.fireDescription,
+      description: fireDescription(report),
     },
   ]
 }
@@ -176,31 +200,33 @@ export function buildFireZones(report: FireReport): FireZone[] {
   return report.activeFire.fronts
     .filter((front) => front.lengthKm >= MIN_LIST_FRONT_KM)
     .sort((first, second) => second.lengthKm - first.lengthKm)
-    .map((front, index) => {
-      const polygons = front.geometry.type === 'Polygon' ? [front.geometry.coordinates] : front.geometry.coordinates
-      const first = polygons[0][0][0]
-      let west = first[0]
-      let east = first[0]
-      let south = first[1]
-      let north = first[1]
-      for (const polygon of polygons) {
-        for (const ring of polygon) {
-          for (const [lng, lat] of ring) {
-            west = Math.min(west, lng)
-            east = Math.max(east, lng)
-            south = Math.min(south, lat)
-            north = Math.max(north, lat)
-          }
-        }
+    .map((front, index) => ({
+      id: front.id,
+      rank: index + 1,
+      length: t.fireZones.length(formatNumber(front.lengthKm, 1)),
+      detail: t.fireZones.detail(formatNumber(front.areaHa, 1)),
+      bounds: geometryBounds(front.geometry),
+    }))
+}
+
+export function geometryBounds(geometry: AreaGeometry): [LngLat, LngLat] {
+  const polygons = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates
+  const first = polygons[0][0][0]
+  let west = first[0]
+  let east = first[0]
+  let south = first[1]
+  let north = first[1]
+  for (const polygon of polygons) {
+    for (const ring of polygon) {
+      for (const [lng, lat] of ring) {
+        west = Math.min(west, lng)
+        east = Math.max(east, lng)
+        south = Math.min(south, lat)
+        north = Math.max(north, lat)
       }
-      return {
-        id: front.id,
-        rank: index + 1,
-        length: t.fireZones.length(formatNumber(front.lengthKm, 1)),
-        detail: t.fireZones.detail(formatNumber(front.areaHa, 1)),
-        bounds: [[west, south], [east, north]],
-      }
-    })
+    }
+  }
+  return [[west, south], [east, north]]
 }
 
 export function buildLegend(

@@ -1,0 +1,11 @@
+{
+  "name": "pitch",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "record": "node record-landing.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "1.56.1"
+  }
+}
